@@ -1,0 +1,1555 @@
+openapi: "3.1.0"
+info:
+  title: Secure File Sharing API — Module 4
+  version: "1.0.0"
+  description: >
+    Access Control & Secure File Sharing endpoints.
+    All owner-only endpoints require a Bearer JWT in the Authorization header.
+
+servers:
+  - url: https://localhost:5000
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Permissions:
+      type: object
+      properties:
+        can_view:      { type: boolean, default: true }
+        can_download:  { type: boolean, default: false }
+        can_edit:      { type: boolean, default: false }
+        can_reshare:   { type: boolean, default: false }
+
+    Share:
+      type: object
+      properties:
+        id:           { type: string, format: uuid }
+        file_id:      { type: string, format: uuid }
+        recipient_id: { type: string, format: uuid, nullable: true }
+        permissions:  { $ref: "#/components/schemas/Permissions" }
+        share_token:  { type: string }
+        custom_slug:  { type: string, nullable: true, example: "team-wiki" }
+        share_url:    { type: string, format: uri }
+        expires_at:   { type: string, format: date-time, nullable: true }
+        is_revoked:   { type: boolean }
+        created_at:   { type: string, format: date-time }
+        updated_at:   { type: string, format: date-time }
+        first_viewed_at:     { type: string, format: date-time, nullable: true }
+        first_downloaded_at: { type: string, format: date-time, nullable: true }
+
+    FileMetadata:
+      type: object
+      properties:
+        id:         { type: string, format: uuid }
+        filename:   { type: string }
+        mime_type:  { type: string }
+        size_bytes: { type: integer }
+        deleted_at: { type: string, format: date-time, nullable: true }
+        is_deleted: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    UploadSession:
+      type: object
+      properties:
+        id:               { type: string, format: uuid }
+        owner_id:         { type: string, format: uuid }
+        filename:         { type: string }
+        mime_type:        { type: string }
+        total_size_bytes: { type: integer, nullable: true }
+        expected_chunks:  { type: integer }
+        received_chunks:  { type: integer }
+        status:           { type: string, enum: [in_progress, completed, aborted] }
+        folder_id:        { type: string, format: uuid, nullable: true }
+        auto_delete_at:   { type: string, format: date-time, nullable: true }
+        tags:             { type: string, nullable: true }
+        created_at:       { type: string, format: date-time }
+        updated_at:       { type: string, format: date-time }
+
+    Webhook:
+      type: object
+      properties:
+        id:          { type: string, format: uuid }
+        user_id:     { type: string, format: uuid }
+        url:         { type: string, format: uri }
+        secret:      { type: string }
+        event_types: { type: array, items: { type: string } }
+        is_active:   { type: boolean }
+        created_at:  { type: string, format: date-time }
+        updated_at:  { type: string, format: date-time }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+    BulkOperationResult:
+      type: object
+      properties:
+        succeeded:
+          type: array
+          items: { type: string, format: uuid }
+        failed:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              error: { type: string }
+        total: { type: integer }
+        success_count: { type: integer }
+        failure_count: { type: integer }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/files/{file_id}/share:
+    post:
+      summary: Create a share for a file
+      tags: [Shares]
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipient_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                  description: Omit for an open "anyone with the link" share
+                permissions:
+                  $ref: "#/components/schemas/Permissions"
+                password:
+                  type: string
+                  description: Optional plaintext password (hashed server-side with Argon2)
+                expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                custom_slug:
+                  type: string
+                  nullable: true
+                  description: Optional custom human-readable slug (3-64 alphanumeric + hyphens)
+                  example: "team-wiki"
+      responses:
+        "201":
+          description: Share(s) created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shares:
+                    type: array
+                    items: { $ref: "#/components/schemas/Share" }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "404": { description: File not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "409": { description: Custom slug collision, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/files/{file_id}/shares:
+    get:
+      summary: List all shares for a file (owner only)
+      tags: [Shares]
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: List of shares
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shares:
+                    type: array
+                    items: { $ref: "#/components/schemas/Share" }
+        "404": { description: File not found }
+
+  /api/shares/{token}/access:
+    get:
+      summary: Validate share token and return file metadata
+      tags: [Shares]
+      security: []   # JWT optional
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+          description: Share token or custom slug
+        - name: X-Share-Grant
+          in: header
+          required: false
+          schema: { type: string }
+          description: Short-lived grant token required for password-protected shares
+      responses:
+        "200":
+          description: Share is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  share:       { $ref: "#/components/schemas/Share" }
+                  file:        { $ref: "#/components/schemas/FileMetadata" }
+                  permissions: { $ref: "#/components/schemas/Permissions" }
+        "401": { description: Password required or invalid grant }
+        "403": { description: Wrong recipient }
+        "410": { description: Expired or revoked }
+
+  /api/shares/{token}/verify-password:
+    post:
+      summary: Verify share-link password (rate-limited 5/15 min per IP)
+      tags: [Shares]
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+          description: Share token or custom slug
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        "200":
+          description: Password correct — returns short-lived grant token (15 min)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  grant_token: { type: string }
+        "403": { description: Wrong password }
+        "429": { description: Rate limit exceeded }
+
+  /api/shares/{token}/download:
+    get:
+      summary: Stream decrypted file (requires can_download permission)
+      tags: [Shares]
+      security: []   # JWT optional
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+          description: Share token or custom slug
+        - name: X-Share-Grant
+          in: header
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Decrypted file stream
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "403": { description: Download not permitted }
+        "410": { description: Expired or revoked }
+
+  /api/shares/{token}/preview:
+    get:
+      summary: Stream decrypted file inline for in-browser preview (requires can_view=true and can_download=false)
+      tags: [Shares]
+      security: []   # JWT optional
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+          description: Share token or custom slug
+        - name: X-Share-Grant
+          in: header
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Decrypted file stream with Content-Disposition inline
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { description: Password required }
+        "403": { description: Preview not permitted or download is enabled }
+        "404": { description: Share not found }
+        "410": { description: Expired or revoked }
+
+  /api/shares/{share_id}:
+    patch:
+      summary: Update permissions, expiry, or revoke (owner only)
+      tags: [Shares]
+      parameters:
+        - name: share_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions: { $ref: "#/components/schemas/Permissions" }
+                expires_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                custom_slug:
+                  type: string
+                  nullable: true
+                  description: Optional custom slug (pass null or empty string to clear)
+                  example: "updated-wiki"
+                is_revoked: { type: boolean }
+      responses:
+        "200":
+          description: Updated share
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  share: { $ref: "#/components/schemas/Share" }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "403": { description: Not the owner }
+        "404": { description: Share not found }
+        "409": { description: Custom slug collision, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+    delete:
+      summary: Revoke a share (owner only)
+      tags: [Shares]
+      parameters:
+        - name: share_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Share revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        "403": { description: Not the owner }
+
+  /api/shares/{share_id}/receipts:
+    get:
+      summary: Get read and download receipts for a share (owner only)
+      tags: [Shares]
+      parameters:
+        - name: share_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: View and download receipt details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  share_id:            { type: string, format: uuid }
+                  recipient_id:        { type: string, format: uuid, nullable: true }
+                  viewed:              { type: boolean }
+                  downloaded:          { type: boolean }
+                  first_viewed_at:     { type: string, format: date-time, nullable: true }
+                  first_downloaded_at: { type: string, format: date-time, nullable: true }
+        "401": { description: Missing or invalid token }
+        "403": { description: Not the owner }
+        "404": { description: Share not found }
+
+  /api/shares/{token}/qrcode:
+    get:
+      summary: Return QR code PNG encoding the share URL
+      tags: [Shares]
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+          description: Share token or custom slug
+        - name: X-Share-Grant
+          in: header
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: QR code PNG image
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        "401": { description: Password required }
+        "410": { description: Expired or revoked }
+
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username: { type: string }
+                email:    { type: string, format: email }
+                password: { type: string }
+      responses:
+        "201": { description: User created }
+        "409": { description: Username or email taken }
+
+  /api/auth/login:
+    post:
+      summary: Login and receive JWT
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:     { type: string, format: email }
+                password:  { type: string }
+                totp_code: { type: string, description: Required only if MFA is enabled }
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id:       { type: string, format: uuid }
+                      username: { type: string }
+                      email:    { type: string }
+        "401": { description: Invalid credentials or MFA code }
+        "429": { description: Rate limit exceeded }
+
+  /api/auth/oauth/google/start:
+    get:
+      summary: Redirect to Google OAuth consent screen
+      tags: [Auth]
+      security: []
+      responses:
+        "302":
+          description: Redirect to Google authorization server
+        "404":
+          description: Google OAuth not configured
+
+  /api/auth/oauth/google/callback:
+    get:
+      summary: Handle Google OAuth callback, exchange code, verify ID token, and login/provision user
+      tags: [Auth]
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema: { type: string }
+        - name: error
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string, format: uuid }
+                      username: { type: string }
+                      email: { type: string }
+                      oauth_provider: { type: string, nullable: true }
+                  is_new_user: { type: boolean }
+        "400": { description: Missing code, OAuth error, or invalid token }
+        "403": { description: Account is disabled }
+        "404": { description: Google OAuth not configured }
+
+  /api/auth/webauthn/register/start:
+    post:
+      summary: Start WebAuthn passkey registration for authenticated user
+      tags: [Auth]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname: { type: string, example: "MacBook Touch ID" }
+      responses:
+        "200":
+          description: WebAuthn creation options and challenge
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  options: { type: object }
+                  challenge: { type: string }
+        "401": { description: Unauthorized }
+
+  /api/auth/webauthn/register/finish:
+    post:
+      summary: Finish WebAuthn passkey registration and store credential
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential: { type: object }
+                challenge: { type: string }
+                nickname: { type: string }
+      responses:
+        "201":
+          description: Passkey registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  credential:
+                    type: object
+                    properties:
+                      id: { type: string, format: uuid }
+                      credential_id: { type: string }
+                      nickname: { type: string }
+                      sign_count: { type: integer }
+                      created_at: { type: string, format: date-time }
+        "400": { description: Verification failed or invalid challenge }
+        "401": { description: Unauthorized }
+        "409": { description: Credential already registered }
+
+  /api/auth/webauthn/login/start:
+    post:
+      summary: Start WebAuthn passkey authentication
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                username: { type: string }
+      responses:
+        "200":
+          description: WebAuthn request options and challenge
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  options: { type: object }
+                  challenge: { type: string }
+
+  /api/auth/webauthn/login/finish:
+    post:
+      summary: Finish WebAuthn passkey authentication and issue JWT
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential: { type: object }
+                challenge: { type: string }
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string, format: uuid }
+                      username: { type: string }
+                      email: { type: string }
+        "400": { description: Verification failed or invalid challenge }
+        "403": { description: Account is disabled }
+        "404": { description: Passkey not recognized }
+
+  /api/auth/users/search:
+    get:
+      summary: Search users by username or email (for recipient picker)
+      tags: [Auth]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 2 }
+      responses:
+        "200":
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:       { type: string, format: uuid }
+                        username: { type: string }
+                        email:    { type: string }
+
+  /api/files:
+    post:
+      summary: Upload and encrypt a file
+      tags: [Files]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: File uploaded and encrypted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  file: { $ref: "#/components/schemas/FileMetadata" }
+    get:
+      summary: List files owned by the current user
+      tags: [Files]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [date, name, size], default: date }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+        - name: folder_id
+          in: query
+          schema: { type: string }
+        - name: tag
+          in: query
+          schema: { type: string }
+        - name: include_deleted
+          in: query
+          schema: { type: boolean, default: false }
+          description: When true, includes soft-deleted files in results
+      responses:
+        "200":
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items: { $ref: "#/components/schemas/FileMetadata" }
+
+  /api/files/trash:
+    get:
+      summary: List soft-deleted files in the current user's trash
+      tags: [Files]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        "200":
+          description: List of soft-deleted files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items: { $ref: "#/components/schemas/FileMetadata" }
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/FileMetadata" }
+                  total:    { type: integer }
+                  page:     { type: integer }
+                  per_page: { type: integer }
+                  pages:    { type: integer }
+        "401": { description: Unauthorized }
+
+  /api/files/search:
+    get:
+      summary: Search files owned by current user by filename and tags
+      tags: [Files]
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+          description: Search term matching filename or tag name (case-insensitive substring)
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [date, name, size], default: date }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+      responses:
+        "200":
+          description: Matching files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items: { $ref: "#/components/schemas/FileMetadata" }
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/FileMetadata" }
+                  total:    { type: integer }
+                  page:     { type: integer }
+                  per_page: { type: integer }
+                  pages:    { type: integer }
+                  query:    { type: string }
+        "401":
+          description: Missing or invalid token
+
+  /api/files/uploads:
+    post:
+      summary: Start a chunked file upload session
+      tags: [Files]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expected_chunks]
+              properties:
+                expected_chunks:  { type: integer, minimum: 1, example: 3 }
+                filename:         { type: string, example: "report.pdf" }
+                mime_type:        { type: string, example: "application/pdf" }
+                total_size_bytes: { type: integer, example: 10485760 }
+                folder_id:        { type: string, format: uuid }
+                auto_delete_days: { type: number }
+                tags:             { type: array, items: { type: string } }
+      responses:
+        "201":
+          description: Upload session initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  upload_id: { type: string, format: uuid }
+                  session:   { $ref: "#/components/schemas/UploadSession" }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/files/uploads/{upload_id}/chunks/{chunk_index}:
+    put:
+      summary: Upload a raw byte chunk for a chunked upload session
+      tags: [Files]
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: chunk_index
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0 }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                chunk:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Chunk received and written to staging directory
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:          { type: string }
+                  upload_id:        { type: string, format: uuid }
+                  chunk_index:      { type: integer }
+                  chunk_size_bytes: { type: integer }
+                  received_chunks:  { type: integer }
+                  expected_chunks:  { type: integer }
+        "400": { description: Invalid chunk index or empty chunk }
+        "403": { description: Not session owner }
+        "404": { description: Upload session not found }
+
+  /api/files/uploads/{upload_id}/complete:
+    post:
+      summary: Reassemble chunks, verify completeness, and finalize encryption
+      tags: [Files]
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename: { type: string }
+                mime_type: { type: string }
+                folder_id: { type: string, format: uuid }
+      responses:
+        "201":
+          description: File assembled, encrypted, and saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  file: { $ref: "#/components/schemas/FileMetadata" }
+        "400": { description: Missing chunks, empty file, or validation failure }
+        "403": { description: Not session owner }
+        "404": { description: Upload session not found }
+
+  /api/files/uploads/{upload_id}:
+    get:
+      summary: Inspect status of an upload session
+      tags: [Files]
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Session details including received and missing indices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session: { $ref: "#/components/schemas/UploadSession" }
+        "403": { description: Not session owner }
+        "404": { description: Upload session not found }
+
+  /api/files/bulk/delete:
+    post:
+      summary: Bulk delete files owned by current user
+      tags: [Files]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids]
+              properties:
+                file_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                  description: List of file IDs to delete
+      responses:
+        "200":
+          description: Summary of bulk deletion results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkOperationResult" }
+        "400": { description: Invalid payload, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "401": { description: Unauthorized }
+
+  /api/files/bulk/move:
+    post:
+      summary: Bulk move files to target folder or root
+      tags: [Files]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids]
+              properties:
+                file_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                folder_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: Target folder UUID, or null/none/"root" to move to root
+      responses:
+        "200":
+          description: Summary of bulk move results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkOperationResult" }
+        "400": { description: Invalid payload, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "401": { description: Unauthorized }
+        "403": { description: Target folder belongs to another user, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "404": { description: Target folder not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/files/bulk/tag:
+    post:
+      summary: Bulk add, replace, or remove tags on files
+      tags: [Files]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids, tags]
+              properties:
+                file_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                tags:
+                  type: array
+                  items: { type: string }
+                  description: List of tags to add, replace, or remove
+                action:
+                  type: string
+                  enum: [add, replace, remove]
+                  default: add
+                  description: Operation to perform with specified tags
+      responses:
+        "200":
+          description: Summary of bulk tag results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkOperationResult" }
+        "400": { description: Invalid payload, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "401": { description: Unauthorized }
+
+  /api/files/{file_id}/thumbnail:
+    get:
+      summary: On-demand resized JPEG thumbnail for image files (max 400x400)
+      tags: [Files]
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: share_token
+          in: query
+          required: false
+          schema: { type: string }
+          description: Optional share token or custom slug for share-based preview
+        - name: token
+          in: query
+          required: false
+          schema: { type: string }
+          description: Alias for share_token
+      responses:
+        "200":
+          description: Resized JPEG thumbnail binary image stream
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "400": { description: Image processing error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "401": { description: Authentication or share token required / password required }
+        "403": { description: Forbidden }
+        "404": { description: File or share not found }
+        "410": { description: Share expired or revoked }
+        "415": { description: Unsupported media type (only image types supported), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/files/{file_id}:
+    delete:
+      summary: Soft-delete a file or permanently delete if permanent=true (owner only)
+      tags: [Files]
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: permanent
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+          description: When true, permanently purges the file and its disk blobs instead of soft-deleting
+      responses:
+        "200":
+          description: File deleted (soft-deleted or permanently purged)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  file: { $ref: "#/components/schemas/FileMetadata" }
+                  deleted_at: { type: string, format: date-time, nullable: true }
+        "401": { description: Unauthorized }
+        "403": { description: Forbidden }
+        "404": { description: File not found }
+
+  /api/files/{file_id}/restore:
+    post:
+      summary: Restore a soft-deleted file from trash (owner only)
+      tags: [Files]
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: File restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  file: { $ref: "#/components/schemas/FileMetadata" }
+        "400": { description: File is not in trash }
+        "401": { description: Unauthorized }
+        "403": { description: Forbidden }
+        "404": { description: File not found }
+
+  /api/files/{file_id}/analytics:
+    get:
+      summary: Aggregate access analytics across all shares of a file (owner only)
+      tags: [Files]
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Aggregate analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  file_id: { type: string, format: uuid }
+                  filename: { type: string }
+                  total_shares: { type: integer }
+                  total_views: { type: integer }
+                  total_downloads: { type: integer }
+                  views: { type: integer }
+                  downloads: { type: integer }
+                  total_accesses: { type: integer }
+                  unique_accessors: { type: integer }
+                  time_series:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        count: { type: integer }
+                        views: { type: integer }
+                        downloads: { type: integer }
+        "401": { description: Unauthorized }
+        "403": { description: Forbidden }
+        "404": { description: File not found }
+
+
+  # ============================================================================
+  # MODULE 6: ADMIN ENDPOINTS
+  # ============================================================================
+
+  /api/admin/users:
+    get:
+      summary: List all users (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Search by username or email
+        - name: role
+          in: query
+          schema: { type: string, enum: [admin, user] }
+        - name: active
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        username: { type: string }
+                        email: { type: string }
+                        role: { type: string }
+                        is_active: { type: boolean }
+                        mfa_enabled: { type: boolean }
+                        created_at: { type: string, format: date-time }
+                        last_login: { type: string, format: date-time, nullable: true }
+                        disabled_at: { type: string, format: date-time, nullable: true }
+                  total: { type: integer }
+                  page: { type: integer }
+                  per_page: { type: integer }
+                  pages: { type: integer }
+        "403": { description: Admin access required }
+
+  /api/admin/users/{user_id}:
+    get:
+      summary: Get user detail with stats (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: User detail with statistics
+        "403": { description: Admin access required }
+        "404": { description: User not found }
+
+  /api/admin/users/{user_id}/disable:
+    patch:
+      summary: Disable user account (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: User disabled successfully }
+        "400": { description: Cannot disable own account }
+        "403": { description: Admin access required }
+        "404": { description: User not found }
+
+  /api/admin/users/{user_id}/enable:
+    patch:
+      summary: Enable user account (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: User enabled successfully }
+        "403": { description: Admin access required }
+        "404": { description: User not found }
+
+  /api/admin/files:
+    get:
+      summary: List all files system-wide (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: owner_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [size, date], default: date }
+      responses:
+        "200": { description: Paginated file list with owner info }
+        "403": { description: Admin access required }
+
+  /api/admin/storage:
+    get:
+      summary: Get storage usage statistics (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Storage breakdown
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_storage_bytes: { type: integer }
+                  top_users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user_id: { type: string }
+                        username: { type: string }
+                        email: { type: string }
+                        storage_used_bytes: { type: integer }
+                  storage_by_type:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        mime_type: { type: string }
+                        file_count: { type: integer }
+                        total_size_bytes: { type: integer }
+        "403": { description: Admin access required }
+
+  /api/admin/audit-logs:
+    get:
+      summary: View audit logs (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: per_page
+          in: query
+          schema: { type: integer }
+        - name: user_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: start_date
+          in: query
+          schema: { type: string, format: date-time }
+        - name: end_date
+          in: query
+          schema: { type: string, format: date-time }
+        - name: success
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200": { description: Paginated audit logs }
+        "403": { description: Admin access required }
+
+  /api/admin/audit-logs/export:
+    get:
+      summary: Export audit logs as CSV (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: query
+          schema: { type: string, format: uuid }
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: start_date
+          in: query
+          schema: { type: string, format: date-time }
+        - name: end_date
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        "403": { description: Admin access required }
+
+  /api/admin/stats/summary:
+    get:
+      summary: Get system statistics summary (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: System statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_users: { type: integer }
+                  total_files: { type: integer }
+                  uploads_today: { type: integer }
+                  downloads_today: { type: integer }
+                  shared_files_count: { type: integer }
+                  failed_login_attempts_today: { type: integer }
+        "403": { description: Admin access required }
+
+  /api/admin/stats/charts:
+    get:
+      summary: Get time-series chart data (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: metric
+          in: query
+          required: true
+          schema: { type: string, enum: [uploads, downloads, storage, activity] }
+        - name: range
+          in: query
+          schema: { type: string, enum: [7d, 30d, 90d], default: 7d }
+      responses:
+        "200":
+          description: Chart data points
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metric: { type: string }
+                  range: { type: string }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, format: date }
+                        value: { type: integer }
+        "400": { description: Invalid metric }
+        "403": { description: Admin access required }
+
+  /api/webhooks:
+    post:
+      summary: Register a new webhook subscription
+      tags: [Webhooks]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: Publicly routable HTTP or HTTPS URL. Private, loopback, link-local, multicast, and sensitive internal ports are rejected.
+                secret:
+                  type: string
+                  description: Optional HMAC signing secret. Defaults to auto-generated 64-char hex string.
+                event_types:
+                  type: array
+                  items: { type: string }
+                  default: ["share.downloaded", "share.revoked"]
+                is_active:
+                  type: boolean
+                  default: true
+      responses:
+        "201":
+          description: Webhook created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhook: { $ref: "#/components/schemas/Webhook" }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "401": { description: Unauthorized }
+
+    get:
+      summary: List webhooks owned by current user
+      tags: [Webhooks]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhooks:
+                    type: array
+                    items: { $ref: "#/components/schemas/Webhook" }
+        "401": { description: Unauthorized }
+
+  /api/webhooks/{webhook_id}:
+    get:
+      summary: Retrieve a single webhook
+      tags: [Webhooks]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Webhook details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhook: { $ref: "#/components/schemas/Webhook" }
+        "401": { description: Unauthorized }
+        "403": { description: Forbidden }
+        "404": { description: Webhook not found }
+
+    patch:
+      summary: Update webhook configuration
+      tags: [Webhooks]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url: { type: string, format: uri }
+                secret: { type: string }
+                event_types: { type: array, items: { type: string } }
+                is_active: { type: boolean }
+      responses:
+        "200":
+          description: Webhook updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhook: { $ref: "#/components/schemas/Webhook" }
+        "400": { description: Validation error }
+        "401": { description: Unauthorized }
+        "403": { description: Forbidden }
+        "404": { description: Webhook not found }
+
+    delete:
+      summary: Delete a webhook subscription
+      tags: [Webhooks]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: webhook_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Webhook deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        "401": { description: Unauthorized }
+        "403": { description: Forbidden }
+        "404": { description: Webhook not found }

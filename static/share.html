@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure File Share — View & Download</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-light: #eef2ff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --code-bg: #0f172a;
+            --code-text: #f8fafc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            color: var(--text-main);
+        }
+
+        .container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            max-width: 680px;
+            width: 100%;
+            padding: 36px;
+            transition: max-width 0.3s ease;
+        }
+
+        .container.wide {
+            max-width: 900px;
+        }
+
+        h1 {
+            color: var(--text-main);
+            font-size: 1.65rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+        }
+
+        /* Step cards in creator mode */
+        .step { margin-bottom: 20px; }
+        .step-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92rem;
+        }
+
+        .step-number {
+            background: var(--primary);
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        select, input[type="text"], input[type="password"], input[type="datetime-local"] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            background: #fff;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .permission-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13.5px;
+            transition: all 0.2s;
+        }
+
+        .checkbox-label:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .checkbox-label input {
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+        }
+
+        .btn:active:not(:disabled) { transform: translateY(0); }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .btn-success:hover:not(:disabled) {
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #e2e8f0;
+            box-shadow: none;
+        }
+
+        .result {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            display: none;
+        }
+        .result.show { display: block; }
+
+        .share-link {
+            background: white;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            margin: 10px 0;
+            color: #0f172a;
+        }
+
+        .qr-code {
+            text-align: center;
+            margin: 16px 0;
+        }
+        .qr-code img {
+            max-width: 180px;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+        }
+
+        .alert-box {
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            line-height: 1.45;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            color: #92400e;
+        }
+
+        /* Recipient / Preview Mode Styles */
+        .file-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .file-icon {
+            font-size: 2.4rem;
+            line-height: 1;
+        }
+
+        .file-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .file-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-view {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .badge-download {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        /* Preview Containers */
+        .preview-wrapper {
+            margin: 20px 0;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .preview-title {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-image-box {
+            text-align: center;
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 16px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .preview-image-box img {
+            max-width: 100%;
+            max-height: 520px;
+            height: auto;
+            border-radius: 6px;
+            object-fit: contain;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            display: inline-block;
+        }
+
+        .preview-text-box {
+            background: var(--code-bg);
+            color: var(--code-text);
+            border-radius: 10px;
+            padding: 18px 20px;
+            font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+            font-size: 13.5px;
+            line-height: 1.6;
+            max-height: 480px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid #334155;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+        }
+
+        .preview-unavailable {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 36px 24px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .preview-unavailable .notice-icon {
+            font-size: 2.8rem;
+            margin-bottom: 12px;
+            opacity: 0.85;
+        }
+
+        .preview-unavailable h3 {
+            font-size: 1.05rem;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .preview-unavailable p {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            max-width: 420px;
+            margin: 0 auto;
+            line-height: 1.45;
+        }
+
+        /* Password Form */
+        .password-box {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .password-box h3 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+
+        .password-box p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 18px;
+        }
+
+        .password-box form {
+            display: flex;
+            gap: 10px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .password-box input {
+            flex: 1;
+        }
+
+        .password-box button {
+            width: auto;
+            white-space: nowrap;
+        }
+
+        .token-lookup-bar {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .token-lookup-bar a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .token-lookup-bar a:hover {
+            text-decoration: underline;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(99, 102, 241, 0.25);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <!-- RECIPIENT MODE CONTAINER -->
+        <div id="recipientView" style="display: none;">
+            <h1 id="viewHeading">🔒 Secure Shared File</h1>
+            <p class="subtitle" id="viewSubtitle">Decrypting and preparing file...</p>
+
+            <div id="recipientLoading" class="loading-state">
+                <div class="spinner"></div>
+                <span>Checking access permissions...</span>
+            </div>
+
+            <div id="recipientAlert" class="alert-box alert-error" style="display: none;">
+                <span id="recipientAlertMsg"></span>
+            </div>
+
+            <!-- Password required prompt -->
+            <div id="passwordRequiredBox" class="password-box" style="display: none;">
+                <div style="font-size: 2.2rem; margin-bottom: 8px;">🔑</div>
+                <h3>Password Protected</h3>
+                <p>This share requires a password to decrypt and access the contents.</p>
+                <form id="passwordForm">
+                    <input type="password" id="sharePasswordInput" placeholder="Enter share password" required autofocus>
+                    <button type="submit" id="unlockBtn" class="btn">Unlock</button>
+                </form>
+                <div id="passwordErrorMsg" style="color: var(--danger); font-size: 0.85rem; margin-top: 10px; display: none;"></div>
+            </div>
+
+            <!-- File details & preview content -->
+            <div id="fileContentBox" style="display: none;">
+                <div class="file-card">
+                    <div class="file-icon" id="fileIcon">📄</div>
+                    <div class="file-meta">
+                        <div class="file-name" id="fileName">Loading...</div>
+                        <div class="file-sub">
+                            <span id="fileSize">-- KB</span>
+                            <span id="fileMime">application/octet-stream</span>
+                            <span id="permissionBadge" class="badge badge-view">View Only</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download button when can_download=true -->
+                <div id="downloadSection" style="display: none; margin-bottom: 20px;">
+                    <a id="downloadBtn" class="btn btn-success" href="#" download>
+                        ⬇️ Download File
+                    </a>
+                </div>
+
+                <!-- In-browser preview mode (when can_view=true and can_download=false) -->
+                <div id="previewSection" style="display: none;">
+                    <div class="preview-wrapper">
+                        <div class="preview-header">
+                            <span class="preview-title">👁️ In-Browser Preview</span>
+                            <span id="previewStatus" style="font-size: 0.8rem; color: var(--text-muted);">Decrypted in-memory</span>
+                        </div>
+
+                        <!-- Image preview -->
+                        <div id="imagePreviewBox" class="preview-image-box" style="display: none;">
+                            <img id="previewImage" alt="Decrypted Image Preview" src="" />
+                        </div>
+
+                        <!-- Text preview -->
+                        <div id="textPreviewBox" style="display: none;">
+                            <pre id="previewText" class="preview-text-box"><code>Loading preview...</code></pre>
+                        </div>
+
+                        <!-- Unsupported preview notice -->
+                        <div id="previewUnavailableBox" class="preview-unavailable" style="display: none;">
+                            <div class="notice-icon">📄</div>
+                            <h3>Preview not available for this file type</h3>
+                            <p>This file cannot be previewed in the browser, and downloading is disabled by the owner.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="token-lookup-bar">
+                <a href="share.html">← Back to Share Creator</a>
+            </div>
+        </div>
+
+        <!-- CREATOR MODE CONTAINER -->
+        <div id="creatorView">
+            <h1>🔒 Share a File</h1>
+            <p class="subtitle">Generate a secure, encrypted share link</p>
+
+            <form id="shareForm">
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">1</span>
+                        Select File
+                    </div>
+                    <select id="fileSelect" required>
+                        <option value="">Loading files...</option>
+                    </select>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">2</span>
+                        Recipient (optional — leave blank for "anyone with link")
+                    </div>
+                    <input type="text" id="recipientSearch" placeholder="Search by username or email...">
+                    <input type="hidden" id="recipientId">
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">3</span>
+                        Permissions
+                    </div>
+                    <div class="permission-grid">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="can_view" id="permView" checked>
+                            <span>👁️ View</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="can_download" id="permDownload">
+                            <span>⬇️ Download</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="can_edit" id="permEdit">
+                            <span>✏️ Edit</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="can_reshare" id="permReshare">
+                            <span>↗️ Reshare</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">4</span>
+                        Password Protection (optional)
+                    </div>
+                    <input type="password" id="password" placeholder="Leave empty for no password">
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">5</span>
+                        Expiry (optional)
+                    </div>
+                    <input type="datetime-local" id="expiry">
+                </div>
+
+                <button type="submit" id="generateBtn" class="btn">🔗 Generate Share Link</button>
+            </form>
+
+            <div id="result" class="result">
+                <h3 style="color: #15803d; margin-bottom: 8px;">✓ Share Created!</h3>
+                <div class="share-link" id="shareLink"></div>
+                <div class="qr-code">
+                    <img id="qrCode" alt="QR Code">
+                </div>
+                <button class="btn btn-success" onclick="copyLink()">📋 Copy Link</button>
+            </div>
+
+            <div id="error" class="alert-box alert-error" style="display: none; margin-top: 20px;">
+                <strong>Error:</strong>&nbsp;<span id="errorMsg"></span>
+            </div>
+
+            <div class="token-lookup-bar">
+                Have a share token or custom slug?
+                <a href="javascript:void(0)" onclick="promptLookupToken()">Open Shared File</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin + '/api';
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareToken = urlParams.get('token') || urlParams.get('share') || urlParams.get('slug') || (window.location.hash ? window.location.hash.substring(1) : null);
+        let currentGrantToken = null;
+
+        // Determine File Icon by MIME / filename
+        function getFileIcon(mime, filename) {
+            if (!mime) mime = '';
+            if (!filename) filename = '';
+            if (mime.startsWith('image/')) return '🖼️';
+            if (mime.startsWith('video/')) return '🎬';
+            if (mime.startsWith('audio/')) return '🎵';
+            if (mime === 'application/pdf' || filename.endsWith('.pdf')) return '📕';
+            if (mime.startsWith('text/') || /\.(txt|md|csv|log|json|xml|yaml|yml)$/i.test(filename)) return '📝';
+            if (/\.(zip|tar|gz|rar|7z)$/i.test(filename)) return '📦';
+            if (/\.(js|py|html|css|ts|cpp|c|go|rs|java)$/i.test(filename)) return '💻';
+            return '📄';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            if (!bytes) return '-- KB';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function promptLookupToken() {
+            const token = prompt("Enter share token or custom slug:");
+            if (token && token.trim()) {
+                window.location.search = '?token=' + encodeURIComponent(token.trim());
+            }
+        }
+
+        function copyLink() {
+            const link = document.getElementById('shareLink').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('Link copied to clipboard!');
+            });
+        }
+
+        // ==========================================
+        // RECIPIENT MODE
+        // ==========================================
+        if (shareToken) {
+            document.getElementById('creatorView').style.display = 'none';
+            document.getElementById('recipientView').style.display = 'block';
+            loadShareMetadata(shareToken);
+        } else {
+            // ==========================================
+            // CREATOR MODE
+            // ==========================================
+            initCreatorMode();
+        }
+
+        async function loadShareMetadata(token, grantToken = null) {
+            const loading = document.getElementById('recipientLoading');
+            const alertBox = document.getElementById('recipientAlert');
+            const alertMsg = document.getElementById('recipientAlertMsg');
+            const pwdBox = document.getElementById('passwordRequiredBox');
+            const contentBox = document.getElementById('fileContentBox');
+
+            loading.style.display = 'flex';
+            alertBox.style.display = 'none';
+            pwdBox.style.display = 'none';
+            contentBox.style.display = 'none';
+
+            const headers = {};
+            const authToken = localStorage.getItem('access_token');
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            if (grantToken) {
+                headers['X-Share-Grant'] = grantToken;
+            }
+
+            try {
+                const res = await fetch(`${API}/shares/${encodeURIComponent(token)}/access`, { headers });
+                const data = await res.json();
+
+                loading.style.display = 'none';
+
+                if (res.status === 401 && data.password_protected) {
+                    pwdBox.style.display = 'block';
+                    document.getElementById('viewSubtitle').textContent = 'Password required to unlock file';
+                    return;
+                }
+
+                if (!res.ok) {
+                    alertBox.className = 'alert-box alert-error';
+                    alertMsg.textContent = data.error || `Unable to access share (HTTP ${res.status})`;
+                    alertBox.style.display = 'flex';
+                    document.getElementById('viewSubtitle').textContent = 'Access Error';
+                    return;
+                }
+
+                // Render File Info
+                renderShareContent(token, data, grantToken);
+
+            } catch (err) {
+                loading.style.display = 'none';
+                alertBox.className = 'alert-box alert-error';
+                alertMsg.textContent = 'Network error connecting to server: ' + err.message;
+                alertBox.style.display = 'flex';
+            }
+        }
+
+        // Password submit handler
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pwdInput = document.getElementById('sharePasswordInput');
+            const unlockBtn = document.getElementById('unlockBtn');
+            const pwdError = document.getElementById('passwordErrorMsg');
+
+            pwdError.style.display = 'none';
+            unlockBtn.disabled = true;
+            unlockBtn.textContent = 'Verifying...';
+
+            try {
+                const res = await fetch(`${API}/shares/${encodeURIComponent(shareToken)}/verify-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwdInput.value })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.grant_token) {
+                    currentGrantToken = data.grant_token;
+                    loadShareMetadata(shareToken, currentGrantToken);
+                } else {
+                    pwdError.textContent = data.error || 'Incorrect password';
+                    pwdError.style.display = 'block';
+                }
+            } catch (err) {
+                pwdError.textContent = 'Error verifying password: ' + err.message;
+                pwdError.style.display = 'block';
+            } finally {
+                unlockBtn.disabled = false;
+                unlockBtn.textContent = 'Unlock';
+            }
+        });
+
+        function isPlainText(mime, filename) {
+            if (!mime) mime = '';
+            if (!filename) filename = '';
+            if (mime.startsWith('text/')) return true;
+            if (mime === 'application/json' || mime === 'application/javascript' || mime === 'application/xml') return true;
+            return /\.(txt|md|csv|json|xml|log|py|js|html|css|yaml|yml|sh|env|sql)$/i.test(filename);
+        }
+
+        function isImage(mime, filename) {
+            if (!mime) mime = '';
+            if (!filename) filename = '';
+            if (mime.startsWith('image/')) return true;
+            return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(filename);
+        }
+
+        async function renderShareContent(token, accessData, grantToken) {
+            const file = accessData.file;
+            const perms = accessData.permissions || {};
+            const contentBox = document.getElementById('fileContentBox');
+            const mainContainer = document.getElementById('mainContainer');
+
+            contentBox.style.display = 'block';
+            document.getElementById('viewSubtitle').textContent = 'Secure, end-to-end encrypted file share';
+
+            document.getElementById('fileName').textContent = file.filename;
+            document.getElementById('fileSize').textContent = formatBytes(file.size_bytes);
+            document.getElementById('fileMime').textContent = file.mime_type || 'application/octet-stream';
+            document.getElementById('fileIcon').textContent = getFileIcon(file.mime_type, file.filename);
+
+            const permBadge = document.getElementById('permissionBadge');
+            const downloadSection = document.getElementById('downloadSection');
+            const previewSection = document.getElementById('previewSection');
+            const imagePreviewBox = document.getElementById('imagePreviewBox');
+            const textPreviewBox = document.getElementById('textPreviewBox');
+            const previewUnavailableBox = document.getElementById('previewUnavailableBox');
+
+            // Reset visibility
+            downloadSection.style.display = 'none';
+            previewSection.style.display = 'none';
+            imagePreviewBox.style.display = 'none';
+            textPreviewBox.style.display = 'none';
+            previewUnavailableBox.style.display = 'none';
+            previewUnavailableBox.querySelector('h3').textContent = 'Preview not available for this file type';
+            previewUnavailableBox.querySelector('p').textContent = 'This file cannot be previewed in the browser, and downloading is disabled by the owner.';
+
+            const canDownload = perms.can_download === true;
+            const canView = perms.can_view === true;
+
+            if (canDownload) {
+                permBadge.className = 'badge badge-download';
+                permBadge.textContent = 'Download Permitted';
+                downloadSection.style.display = 'block';
+
+                const downloadBtn = document.getElementById('downloadBtn');
+                downloadBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    downloadBtn.textContent = '⏳ Decrypting download...';
+                    downloadBtn.classList.add('disabled');
+                    try {
+                        const headers = {};
+                        if (grantToken) headers['X-Share-Grant'] = grantToken;
+                        const authToken = localStorage.getItem('access_token');
+                        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+                        const res = await fetch(`${API}/shares/${encodeURIComponent(token)}/download`, { headers });
+                        if (!res.ok) throw new Error('Download failed with status ' + res.status);
+                        const blob = await res.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = file.filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(blobUrl);
+                    } catch (err) {
+                        alert('Download error: ' + err.message);
+                    } finally {
+                        downloadBtn.textContent = '⬇️ Download File';
+                        downloadBtn.classList.remove('disabled');
+                    }
+                };
+            } else if (canView) {
+                permBadge.className = 'badge badge-view';
+                permBadge.textContent = 'View Only (Download Disabled)';
+                previewSection.style.display = 'block';
+                mainContainer.classList.add('wide');
+
+                const mime = (file.mime_type || '').toLowerCase();
+                const filename = file.filename || '';
+                const size = file.size_bytes || 0;
+
+                // Setup headers for preview
+                const previewHeaders = {};
+                if (grantToken) previewHeaders['X-Share-Grant'] = grantToken;
+                const authToken = localStorage.getItem('access_token');
+                if (authToken) previewHeaders['Authorization'] = `Bearer ${authToken}`;
+
+                if (isImage(mime, filename)) {
+                    // IMAGE PREVIEW
+                    imagePreviewBox.style.display = 'block';
+                    const imgEl = document.getElementById('previewImage');
+                    imgEl.alt = 'Decrypting preview...';
+
+                    try {
+                        const res = await fetch(`${API}/shares/${encodeURIComponent(token)}/preview`, {
+                            headers: previewHeaders
+                        });
+                        if (!res.ok) throw new Error('Preview fetch failed (HTTP ' + res.status + ')');
+                        const blob = await res.blob();
+                        const objectUrl = URL.createObjectURL(blob);
+                        imgEl.src = objectUrl;
+                        imgEl.alt = filename;
+                    } catch (err) {
+                        imagePreviewBox.style.display = 'none';
+                        previewUnavailableBox.style.display = 'block';
+                        previewUnavailableBox.querySelector('h3').textContent = 'Unable to render image preview';
+                        previewUnavailableBox.querySelector('p').textContent = err.message;
+                    }
+
+                } else if (isPlainText(mime, filename) && size <= 1048576) {
+                    // TEXT PREVIEW (under 1MB)
+                    textPreviewBox.style.display = 'block';
+                    const textEl = document.getElementById('previewText');
+                    textEl.textContent = 'Decrypting text preview...';
+
+                    try {
+                        const res = await fetch(`${API}/shares/${encodeURIComponent(token)}/preview`, {
+                            headers: previewHeaders
+                        });
+                        if (!res.ok) throw new Error('Preview fetch failed (HTTP ' + res.status + ')');
+                        const text = await res.text();
+                        textEl.textContent = text;
+                    } catch (err) {
+                        textPreviewBox.style.display = 'none';
+                        previewUnavailableBox.style.display = 'block';
+                        previewUnavailableBox.querySelector('h3').textContent = 'Unable to render text preview';
+                        previewUnavailableBox.querySelector('p').textContent = err.message;
+                    }
+
+                } else {
+                    // UNSUPPORTED TYPE OR SIZE > 1MB: DO NOT DOWNLOAD, SHOW NOTICE
+                    previewUnavailableBox.style.display = 'block';
+                    if (size > 1048576 && isPlainText(mime, filename)) {
+                        previewUnavailableBox.querySelector('p').textContent =
+                            'This text file exceeds the 1MB in-browser preview limit, and downloading is disabled by the owner.';
+                    }
+                }
+            } else {
+                permBadge.className = 'badge';
+                permBadge.textContent = 'No Access';
+                previewUnavailableBox.style.display = 'block';
+                previewUnavailableBox.querySelector('h3').textContent = 'No permissions';
+                previewUnavailableBox.querySelector('p').textContent = 'You do not have view or download permissions for this share.';
+            }
+        }
+
+        // ==========================================
+        // CREATOR INITIALIZATION
+        // ==========================================
+        function initCreatorMode() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                // Show a helpful prompt without force-navigating if user hasn't logged in
+                const select = document.getElementById('fileSelect');
+                select.innerHTML = '<option value="">Please log in to share files</option>';
+                const generateBtn = document.getElementById('generateBtn');
+                generateBtn.textContent = '🔑 Log in to Share Files';
+                generateBtn.onclick = (e) => {
+                    e.preventDefault();
+                    window.location.href = '/login.html';
+                };
+                return;
+            }
+
+            // Load files
+            fetch(`${API}/files`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(r => r.json())
+            .then(data => {
+                const select = document.getElementById('fileSelect');
+                select.innerHTML = (data.files && data.files.length)
+                    ? data.files.map(f => `<option value="${f.id}">${f.filename} (${formatBytes(f.size_bytes)})</option>`).join('')
+                    : '<option value="">No files uploaded yet</option>';
+            })
+            .catch(() => {
+                document.getElementById('fileSelect').innerHTML = '<option value="">Error loading files</option>';
+            });
+
+            // Handle form submit
+            document.getElementById('shareForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const fileId = document.getElementById('fileSelect').value;
+                if (!fileId) return alert('Please select a file');
+
+                const btn = document.getElementById('generateBtn');
+                btn.disabled = true;
+                btn.textContent = '⏳ Creating share...';
+
+                const recipientId = document.getElementById('recipientId').value;
+                const permissions = {
+                    can_view: document.getElementById('permView').checked,
+                    can_download: document.getElementById('permDownload').checked,
+                    can_edit: document.getElementById('permEdit').checked,
+                    can_reshare: document.getElementById('permReshare').checked,
+                };
+                const password = document.getElementById('password').value;
+                const expiry = document.getElementById('expiry').value;
+
+                const body = { permissions };
+                if (recipientId) body.recipient_ids = [recipientId];
+                if (password) body.password = password;
+                if (expiry) body.expires_at = new Date(expiry).toISOString();
+
+                try {
+                    const res = await fetch(`${API}/files/${fileId}/share`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(body)
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok) throw new Error(data.error || 'Failed to create share');
+
+                    const share = data.shares[0];
+                    const shareUrl = `${window.location.origin}/static/share.html?token=${encodeURIComponent(share.share_token)}`;
+
+                    document.getElementById('shareLink').textContent = shareUrl;
+                    document.getElementById('qrCode').src = `${API}/shares/${share.share_token}/qrcode`;
+                    document.getElementById('result').classList.add('show');
+                    document.getElementById('error').style.display = 'none';
+
+                } catch (err) {
+                    document.getElementById('errorMsg').textContent = err.message;
+                    document.getElementById('error').style.display = 'flex';
+                    document.getElementById('result').classList.remove('show');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '🔗 Generate Share Link';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

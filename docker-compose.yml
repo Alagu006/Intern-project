@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-secure_files}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-secure_files}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-secure_files}
+      SECRET_KEY: ${SECRET_KEY:-change-this-to-a-random-secret-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-this-to-a-random-secret-in-production}
+      MASTER_KEK: ${MASTER_KEK:-dGVzdC1tYXN0ZXIta2VrLTMyLWJ5dGVzLWxlbmd0aCE=}
+      UPLOAD_FOLDER: ${UPLOAD_FOLDER:-/var/secure_files}
+      BASE_URL: ${BASE_URL:-http://localhost:5000}
+      RATELIMIT_STORAGE_URI: ${RATELIMIT_STORAGE_URI:-memory://}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-100}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      SCAN_UPLOADS: ${SCAN_UPLOADS:-false}
+      CLAMD_HOST: ${CLAMD_HOST:-127.0.0.1}
+      CLAMD_PORT: ${CLAMD_PORT:-3310}
+      CLAMD_TIMEOUT: ${CLAMD_TIMEOUT:-10.0}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - file_storage:/var/secure_files
+
+volumes:
+  postgres_data:
+  file_storage:

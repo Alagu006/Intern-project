@@ -1,0 +1,359 @@
+{
+  "info": {
+    "name": "Secure File Sharing — Module 4",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "share_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "grant_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "file_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "share_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('user_id', json.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', json.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/search?q=bob",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "users", "search"],
+              "query": [{"key": "q", "value": "bob"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Upload File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('file_id', json.file.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/files",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files"]
+            }
+          }
+        },
+        {
+          "name": "List Files",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/files",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shares",
+      "item": [
+        {
+          "name": "Create Share (Open Link)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('share_token', json.shares[0].share_token);",
+                  "    pm.collectionVariables.set('share_id', json.shares[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissions\": {\n    \"can_view\": true,\n    \"can_download\": true,\n    \"can_edit\": false,\n    \"can_reshare\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/files/{{file_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "{{file_id}}", "share"]
+            }
+          }
+        },
+        {
+          "name": "Create Share (Password Protected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissions\": {\n    \"can_view\": true,\n    \"can_download\": true\n  },\n  \"password\": \"secret123\",\n  \"expires_at\": \"2027-12-31T23:59:59Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/files/{{file_id}}/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "{{file_id}}", "share"]
+            }
+          }
+        },
+        {
+          "name": "List File Shares",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/files/{{file_id}}/shares",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files", "{{file_id}}", "shares"]
+            }
+          }
+        },
+        {
+          "name": "Access Share",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shares/{{share_token}}/access",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shares", "{{share_token}}", "access"]
+            }
+          }
+        },
+        {
+          "name": "Verify Share Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('grant_token', json.grant_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"secret123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shares/{{share_token}}/verify-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shares", "{{share_token}}", "verify-password"]
+            }
+          }
+        },
+        {
+          "name": "Access Share (With Grant)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "X-Share-Grant", "value": "{{grant_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/shares/{{share_token}}/access",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shares", "{{share_token}}", "access"]
+            }
+          }
+        },
+        {
+          "name": "Download File",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shares/{{share_token}}/download",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shares", "{{share_token}}", "download"]
+            }
+          }
+        },
+        {
+          "name": "Get QR Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shares/{{share_token}}/qrcode",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shares", "{{share_token}}", "qrcode"]
+            }
+          }
+        },
+        {
+          "name": "Update Share",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissions\": {\n    \"can_view\": true,\n    \"can_download\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shares/{{share_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shares", "{{share_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Revoke Share",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{access_token}}"}
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/shares/{{share_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shares", "{{share_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

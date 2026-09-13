@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.env
+venv
+.venv
+env
+.git
+.gitignore
+.github
+*.enc
+/var/secure_files
+tmp
