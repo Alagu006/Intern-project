@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — Secure File Share</title>
+    <meta name="description" content="Sign in to Secure File Share to manage encrypted files and access grants.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/design-system.css?v=6">
+</head>
+<body>
+    <div class="app-shell">
+        <!-- Application Top Navigation -->
+        <header class="app-navbar" role="banner">
+            <div class="nav-container">
+                <a href="share.html" class="brand" aria-label="Secure File Share Home">
+                    <div class="brand-icon-wrapper" aria-hidden="true">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <span>SecureShare</span>
+                </a>
+
+                <nav class="nav-actions" aria-label="User navigation">
+                    <a href="share.html" class="btn btn-ghost btn-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 18-6-6 6-6"/>
+                        </svg>
+                        <span>Share Portal</span>
+                    </a>
+                    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle theme">
+                        <svg id="themeIconSun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                            <circle cx="12" cy="12" r="4"/>
+                            <path d="M12 2v2"/>
+                            <path d="M12 20v2"/>
+                            <path d="m4.93 4.93 1.41 1.41"/>
+                            <path d="m17.66 17.66 1.41 1.41"/>
+                            <path d="M2 12h2"/>
+                            <path d="M20 12h2"/>
+                            <path d="m6.34 17.66-1.41 1.41"/>
+                            <path d="m19.07 4.93-1.41 1.41"/>
+                        </svg>
+                        <svg id="themeIconMoon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                        </svg>
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-main" role="main">
+            <div class="login-card">
+                <div class="login-card-header">
+                    <h1 class="login-card-title">Sign In</h1>
+                    <p class="subtitle">Enter your credentials to access your secure vault</p>
+                </div>
+
+                <div id="loginAlert" class="alert-box alert-error" style="display: none;" role="alert">
+                    <svg class="flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" x2="12" y1="8" x2="12"/>
+                        <line x1="12" x2="12.01" y1="16" y2="16"/>
+                    </svg>
+                    <span id="loginAlertMsg"></span>
+                </div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label" for="loginEmail">Email address</label>
+                        <input type="email" id="loginEmail" class="input-lg" required autofocus placeholder="name@company.com" autocomplete="username">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="loginPassword">Password</label>
+                        <div class="input-group">
+                            <input type="password" id="loginPassword" class="input-lg" required placeholder="Enter account password" autocomplete="current-password">
+                            <button type="button" class="input-icon-btn" onclick="togglePasswordVisibility('loginPassword', this)" aria-label="Show password">
+                                <svg class="icon-eye" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg class="icon-eye-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                                    <line x1="2" x2="22" y1="2" y2="22"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="mfaGroup" class="form-group" style="display: none;">
+                        <label class="form-label" for="totpCode">Authenticator Code (TOTP)</label>
+                        <input type="text" id="totpCode" class="input-totp" placeholder="000000" autocomplete="one-time-code" maxlength="6">
+                        <div class="form-help-text text-center">Enter the 6-digit code from your authenticator app.</div>
+                    </div>
+
+                    <button type="submit" id="submitLoginBtn" class="btn btn-primary btn-lg btn-block">
+                        <span>Sign In</span>
+                    </button>
+                </form>
+
+                <div class="token-lookup-bar">
+                    <a href="share.html">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 18-6-6 6-6"/>
+                        </svg>
+                        <span>Back to File Sharing</span>
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <footer class="app-footer" role="contentinfo">
+            <span>Secure File Share</span>
+            <span>&bull;</span>
+            <span>Zero-Knowledge Architecture</span>
+        </footer>
+    </div>
+
+    <script>
+        // Theme Engine
+        const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        applyTheme(savedTheme);
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            const iconSun = document.getElementById('themeIconSun');
+            const iconMoon = document.getElementById('themeIconMoon');
+            if (iconSun && iconMoon) {
+                if (theme === 'dark') {
+                    iconSun.style.display = 'inline';
+                    iconMoon.style.display = 'none';
+                } else {
+                    iconSun.style.display = 'none';
+                    iconMoon.style.display = 'inline';
+                }
+            }
+        }
+
+        // ==========================================
+        // Enterprise Toast Notification Helper
+        // ==========================================
+        function showToast({ type = 'info', title = '', message = '', duration = 3200 } = {}) {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+
+            const icons = {
+                success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+                warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+                error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+                info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.setAttribute('role', 'status');
+            toast.innerHTML = `
+                <div class="toast-icon-slot">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    ${title ? `<div class="toast-title">${title}</div>` : ''}
+                    ${message ? `<div class="toast-desc">${message}</div>` : ''}
+                </div>
+                <button type="button" class="toast-close-btn" aria-label="Dismiss notification" onclick="this.closest('.toast').remove()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('toast-hiding');
+                setTimeout(() => toast.remove(), 160);
+            }, duration);
+        }
+        window.showToast = showToast;
+
+        document.getElementById('themeToggleBtn').addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            showToast({
+                type: 'info',
+                title: 'Theme Changed',
+                message: `Switched to ${next === 'dark' ? 'Dark' : 'Light'} theme.`
+            });
+        });
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const eyeIcon = btn.querySelector('.icon-eye');
+            const eyeOffIcon = btn.querySelector('.icon-eye-off');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (eyeIcon) eyeIcon.style.display = 'none';
+                if (eyeOffIcon) eyeOffIcon.style.display = 'inline';
+            } else {
+                input.type = 'password';
+                if (eyeIcon) eyeIcon.style.display = 'inline';
+                if (eyeOffIcon) eyeOffIcon.style.display = 'none';
+            }
+        }
+
+        const API = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+            ? window.location.origin + '/api'
+            : 'http://127.0.0.1:5000/api';
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const totp_code = document.getElementById('totpCode').value.trim();
+            const alertBox = document.getElementById('loginAlert');
+            const alertMsg = document.getElementById('loginAlertMsg');
+            const submitBtn = document.getElementById('submitLoginBtn');
+
+            alertBox.style.display = 'none';
+            submitBtn.classList.add('btn-loading');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="btn-spinner"></span><span>Authenticating...</span>';
+
+            const payload = { email, password };
+            if (totp_code) payload.totp_code = totp_code;
+
+            try {
+                const res = await fetch(`${API}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    if (data.error && data.error.includes('MFA')) {
+                        document.getElementById('mfaGroup').style.display = 'block';
+                    }
+                    throw new Error(data.error || 'Authentication failed');
+                }
+
+                if (data.access_token) {
+                    localStorage.setItem('access_token', data.access_token);
+                    if (data.user) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                    showToast({
+                        type: 'success',
+                        title: 'Authenticated',
+                        message: 'Session established. Redirecting to vault...'
+                    });
+                    setTimeout(() => {
+                        window.location.href = 'share.html';
+                    }, 400);
+                }
+            } catch (err) {
+                alertMsg.textContent = err.message;
+                alertBox.style.display = 'flex';
+                showToast({
+                    type: 'error',
+                    title: 'Sign In Failed',
+                    message: err.message
+                });
+            } finally {
+                submitBtn.classList.remove('btn-loading');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                    </svg>
+                    <span>Sign In to Vault</span>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

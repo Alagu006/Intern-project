@@ -1,666 +1,1126 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure File Share — View & Download</title>
+    <title>Secure File Share — Enterprise Vault</title>
+    <meta name="description" content="Production-grade secure, end-to-end encrypted file sharing and zero-knowledge delivery platform.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --primary-light: #eef2ff;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --bg-card: #ffffff;
-            --border-color: #e2e8f0;
-            --code-bg: #0f172a;
-            --code-text: #f8fafc;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px 16px;
-            color: var(--text-main);
-        }
-
-        .container {
-            background: var(--bg-card);
-            border-radius: 16px;
-            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
-            max-width: 680px;
-            width: 100%;
-            padding: 36px;
-            transition: max-width 0.3s ease;
-        }
-
-        .container.wide {
-            max-width: 900px;
-        }
-
-        h1 {
-            color: var(--text-main);
-            font-size: 1.65rem;
-            font-weight: 700;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-bottom: 24px;
-        }
-
-        /* Step cards in creator mode */
-        .step { margin-bottom: 20px; }
-        .step-title {
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.92rem;
-        }
-
-        .step-number {
-            background: var(--primary);
-            color: white;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        select, input[type="text"], input[type="password"], input[type="datetime-local"] {
-            width: 100%;
-            padding: 12px 14px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.2s ease;
-            background: #fff;
-        }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-        }
-
-        .permission-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 12px;
-            background: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13.5px;
-            transition: all 0.2s;
-        }
-
-        .checkbox-label:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-        }
-
-        .checkbox-label input {
-            cursor: pointer;
-            accent-color: var(--primary);
-        }
-
-        .btn {
-            width: 100%;
-            padding: 13px 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
-        }
-
-        .btn:active:not(:disabled) { transform: translateY(0); }
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
-        .btn-success:hover:not(:disabled) {
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
-        }
-
-        .btn-secondary {
-            background: #f1f5f9;
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-        }
-        .btn-secondary:hover:not(:disabled) {
-            background: #e2e8f0;
-            box-shadow: none;
-        }
-
-        .result {
-            margin-top: 24px;
-            padding: 20px;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 10px;
-            display: none;
-        }
-        .result.show { display: block; }
-
-        .share-link {
-            background: white;
-            padding: 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            word-break: break-all;
-            margin: 10px 0;
-            color: #0f172a;
-        }
-
-        .qr-code {
-            text-align: center;
-            margin: 16px 0;
-        }
-        .qr-code img {
-            max-width: 180px;
-            border: 2px solid var(--primary);
-            border-radius: 8px;
-        }
-
-        .alert-box {
-            padding: 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            line-height: 1.45;
-        }
-
-        .alert-error {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            color: #b91c1c;
-        }
-
-        .alert-info {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            color: #1e40af;
-        }
-
-        .alert-warning {
-            background: #fffbeb;
-            border: 1px solid #fef3c7;
-            color: #92400e;
-        }
-
-        /* Recipient / Preview Mode Styles */
-        .file-card {
-            background: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .file-icon {
-            font-size: 2.4rem;
-            line-height: 1;
-        }
-
-        .file-meta {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .file-name {
-            font-size: 1.15rem;
-            font-weight: 600;
-            color: var(--text-main);
-            margin-bottom: 4px;
-            word-break: break-all;
-        }
-
-        .file-sub {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 11.5px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-
-        .badge-view {
-            background: #e0e7ff;
-            color: #4338ca;
-        }
-
-        .badge-download {
-            background: #dcfce7;
-            color: #15803d;
-        }
-
-        /* Preview Containers */
-        .preview-wrapper {
-            margin: 20px 0;
-        }
-
-        .preview-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .preview-title {
-            font-size: 0.92rem;
-            font-weight: 600;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .preview-image-box {
-            text-align: center;
-            background: #0f172a;
-            border-radius: 10px;
-            padding: 16px;
-            overflow: hidden;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
-        }
-
-        .preview-image-box img {
-            max-width: 100%;
-            max-height: 520px;
-            height: auto;
-            border-radius: 6px;
-            object-fit: contain;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-            display: inline-block;
-        }
-
-        .preview-text-box {
-            background: var(--code-bg);
-            color: var(--code-text);
-            border-radius: 10px;
-            padding: 18px 20px;
-            font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
-            font-size: 13.5px;
-            line-height: 1.6;
-            max-height: 480px;
-            overflow: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-            border: 1px solid #334155;
-            box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
-        }
-
-        .preview-unavailable {
-            background: #f8fafc;
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
-            padding: 36px 24px;
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .preview-unavailable .notice-icon {
-            font-size: 2.8rem;
-            margin-bottom: 12px;
-            opacity: 0.85;
-        }
-
-        .preview-unavailable h3 {
-            font-size: 1.05rem;
-            color: var(--text-main);
-            margin-bottom: 6px;
-        }
-
-        .preview-unavailable p {
-            font-size: 0.88rem;
-            color: var(--text-muted);
-            max-width: 420px;
-            margin: 0 auto;
-            line-height: 1.45;
-        }
-
-        /* Password Form */
-        .password-box {
-            background: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            margin: 20px 0;
-            text-align: center;
-        }
-
-        .password-box h3 {
-            font-size: 1.1rem;
-            margin-bottom: 6px;
-        }
-
-        .password-box p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-bottom: 18px;
-        }
-
-        .password-box form {
-            display: flex;
-            gap: 10px;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .password-box input {
-            flex: 1;
-        }
-
-        .password-box button {
-            width: auto;
-            white-space: nowrap;
-        }
-
-        .token-lookup-bar {
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-align: center;
-        }
-
-        .token-lookup-bar a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .token-lookup-bar a:hover {
-            text-decoration: underline;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border: 3px solid rgba(99, 102, 241, 0.25);
-            border-radius: 50%;
-            border-top-color: var(--primary);
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/design-system.css?v=6">
 </head>
 <body>
-    <div class="container" id="mainContainer">
-        <!-- RECIPIENT MODE CONTAINER -->
-        <div id="recipientView" style="display: none;">
-            <h1 id="viewHeading">🔒 Secure Shared File</h1>
-            <p class="subtitle" id="viewSubtitle">Decrypting and preparing file...</p>
+    <div class="enterprise-app">
+        <!-- Mobile Sidebar Backdrop Overlay -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
 
-            <div id="recipientLoading" class="loading-state">
-                <div class="spinner"></div>
-                <span>Checking access permissions...</span>
-            </div>
+        <!-- Enterprise Compact Sidebar -->
+        <aside class="enterprise-sidebar" id="appSidebar">
+            <!-- Sidebar Brand Header -->
+            <a href="share.html" class="sidebar-brand" title="Secure File Share Vault">
+                <div class="brand-badge-icon" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <div class="brand-text-col">
+                    <span class="brand-name">SecureShare</span>
+                    <span class="brand-tag">Enterprise Vault</span>
+                </div>
+            </a>
 
-            <div id="recipientAlert" class="alert-box alert-error" style="display: none;">
-                <span id="recipientAlertMsg"></span>
-            </div>
+            <!-- Navigation Hierarchy -->
+            <nav class="sidebar-nav" aria-label="Sidebar navigation">
+                <div class="nav-section-title">
+                    <span>Workspace</span>
+                </div>
+                <a href="share.html" class="nav-item active" id="navItemShare">
+                    <span class="nav-item-icon">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                            <polyline points="16 6 12 2 8 6"/>
+                            <line x1="12" x2="12" y1="2" y2="15"/>
+                        </svg>
+                    </span>
+                    <span>Share Files</span>
+                </a>
+                <a href="javascript:void(0)" class="nav-item" onclick="promptLookupToken()" id="navItemLookup" title="Find share by token or slug (⌘K)">
+                    <span class="nav-item-icon">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                    </span>
+                    <span>Open by Token</span>
+                    <span class="nav-shortcut">⌘K</span>
+                </a>
 
-            <!-- Password required prompt -->
-            <div id="passwordRequiredBox" class="password-box" style="display: none;">
-                <div style="font-size: 2.2rem; margin-bottom: 8px;">🔑</div>
-                <h3>Password Protected</h3>
-                <p>This share requires a password to decrypt and access the contents.</p>
-                <form id="passwordForm">
-                    <input type="password" id="sharePasswordInput" placeholder="Enter share password" required autofocus>
-                    <button type="submit" id="unlockBtn" class="btn">Unlock</button>
-                </form>
-                <div id="passwordErrorMsg" style="color: var(--danger); font-size: 0.85rem; margin-top: 10px; display: none;"></div>
-            </div>
+                <div class="sidebar-separator"></div>
 
-            <!-- File details & preview content -->
-            <div id="fileContentBox" style="display: none;">
-                <div class="file-card">
-                    <div class="file-icon" id="fileIcon">📄</div>
-                    <div class="file-meta">
-                        <div class="file-name" id="fileName">Loading...</div>
-                        <div class="file-sub">
-                            <span id="fileSize">-- KB</span>
-                            <span id="fileMime">application/octet-stream</span>
-                            <span id="permissionBadge" class="badge badge-view">View Only</span>
-                        </div>
+                <div class="nav-section-title">
+                    <span>Resources</span>
+                </div>
+                <a href="/api/docs" target="_blank" rel="noopener" class="nav-item" title="Open API Documentation">
+                    <span class="nav-item-icon">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="16 18 22 12 16 6"/>
+                            <polyline points="8 6 2 12 8 18"/>
+                        </svg>
+                    </span>
+                    <span>API Reference</span>
+                    <svg class="nav-external-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M7 17L17 7"/>
+                        <path d="M7 7h10v10"/>
+                    </svg>
+                </a>
+            </nav>
+
+            <!-- Sidebar Footer & User Profile Block -->
+            <div class="sidebar-footer">
+                <div class="user-profile-row">
+                    <div class="user-avatar" id="userAvatar">
+                        <span id="userAvatarInitial">V</span>
+                        <span class="user-status-dot" title="Node Online"></span>
+                    </div>
+                    <div class="user-info-col">
+                        <span class="user-email" id="sidebarUserEmail">Secure Node</span>
+                        <span class="user-role-tag" id="sidebarUserRole">Active Vault</span>
+                    </div>
+                    <div class="user-quick-actions">
+                        <button type="button" class="icon-button-subtle" id="themeToggleBtn" aria-label="Toggle theme" title="Toggle theme">
+                            <svg id="themeIconSun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                <circle cx="12" cy="12" r="4"/>
+                                <path d="M12 2v2"/>
+                                <path d="M12 20v2"/>
+                                <path d="m4.93 4.93 1.41 1.41"/>
+                                <path d="m17.66 17.66 1.41 1.41"/>
+                                <path d="M2 12h2"/>
+                                <path d="M20 12h2"/>
+                                <path d="m6.34 17.66-1.41 1.41"/>
+                                <path d="m19.07 4.93-1.41 1.41"/>
+                            </svg>
+                            <svg id="themeIconMoon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                            </svg>
+                        </button>
+                        <a href="login.html" id="navLoginBtn" class="icon-button-subtle" title="Sign in" style="display: none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                <polyline points="10 17 15 12 10 7"/>
+                                <line x1="15" x2="3" y1="12" y2="12"/>
+                            </svg>
+                        </a>
+                        <button type="button" id="navLogoutBtn" class="icon-button-subtle" title="Sign out" style="display: none;" onclick="handleLogout()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" x2="9" y1="12" y2="12"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
+            </div>
+        </aside>
 
-                <!-- Download button when can_download=true -->
-                <div id="downloadSection" style="display: none; margin-bottom: 20px;">
-                    <a id="downloadBtn" class="btn btn-success" href="#" download>
-                        ⬇️ Download File
-                    </a>
+        <!-- Main Workplace with Topbar -->
+        <div class="enterprise-main">
+            <header class="enterprise-topbar">
+                <div class="topbar-left">
+                    <button type="button" class="mobile-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Toggle navigation drawer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" x2="21" y1="6" y2="6"/>
+                            <line x1="3" x2="21" y1="12" y2="12"/>
+                            <line x1="3" x2="21" y1="18" y2="18"/>
+                        </svg>
+                    </button>
+                    <nav class="breadcrumbs" aria-label="Breadcrumb navigation">
+                        <a href="share.html">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <span>Vault</span>
+                        </a>
+                        <span class="bc-sep">/</span>
+                        <span>Shares</span>
+                        <span class="bc-sep">/</span>
+                        <span id="bcActiveContext">New Share</span>
+                    </nav>
                 </div>
 
-                <!-- In-browser preview mode (when can_view=true and can_download=false) -->
-                <div id="previewSection" style="display: none;">
-                    <div class="preview-wrapper">
-                        <div class="preview-header">
-                            <span class="preview-title">👁️ In-Browser Preview</span>
-                            <span id="previewStatus" style="font-size: 0.8rem; color: var(--text-muted);">Decrypted in-memory</span>
+                <div class="topbar-right">
+                    <button type="button" class="topbar-action-btn" onclick="promptLookupToken()" id="navLookupBtn" title="Open share by token or custom slug (⌘K)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        <span>Open by Token</span>
+                        <span class="nav-shortcut">⌘K</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="enterprise-content" role="main">
+                <div class="dashboard-viewport" id="mainContainer">
+
+                    <!-- =======================================================
+                         RECIPIENT MODE CONTAINER
+                         ======================================================= -->
+                    <div id="recipientView" class="recipient-container view-enter" style="display: none;">
+                        <div class="card-header-main">
+                            <h1 id="viewHeading">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                                <span>Secure Shared File</span>
+                            </h1>
+                            <p class="subtitle" id="viewSubtitle">Decrypting and validating file grant...</p>
                         </div>
 
-                        <!-- Image preview -->
-                        <div id="imagePreviewBox" class="preview-image-box" style="display: none;">
-                            <img id="previewImage" alt="Decrypted Image Preview" src="" />
+                        <!-- Recipient Loading State with Skeleton -->
+                        <div id="recipientLoading" class="recipient-skeleton-wrapper mb-lg" aria-live="polite">
+                            <div class="skeleton-file-card">
+                                <div class="skeleton-box skeleton-avatar-lg"></div>
+                                <div class="skeleton-col-gap8">
+                                    <div class="skeleton-text w-48"></div>
+                                    <div class="skeleton-text w-28 h-10"></div>
+                                </div>
+                                <div class="skeleton-box skeleton-badge"></div>
+                            </div>
+                            <div class="loading-state loading-state-compact">
+                                <div class="spinner" aria-hidden="true"></div>
+                                <span id="recipientLoadingText">Verifying zero-knowledge token &amp; cryptographic envelope...</span>
+                            </div>
                         </div>
 
-                        <!-- Text preview -->
-                        <div id="textPreviewBox" style="display: none;">
-                            <pre id="previewText" class="preview-text-box"><code>Loading preview...</code></pre>
+                        <!-- Dedicated Error State Card -->
+                        <div id="recipientErrorState" class="ui-error-state" style="display: none;" role="alert">
+                            <div class="error-state-icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                            </div>
+                            <h3 class="error-state-title" id="recipientErrorTitle">Access Denied or Expired</h3>
+                            <p class="error-state-desc" id="recipientErrorDesc">This cryptographic access grant does not exist, has expired, or has reached its access limit. Please verify the URL or request a new token from the sender.</p>
+                            <div class="error-state-actions">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="promptLookupToken()">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"/>
+                                        <path d="m21 21-4.3-4.3"/>
+                                    </svg>
+                                    <span>Try Another Token</span>
+                                </button>
+                                <a href="share.html" class="btn btn-primary btn-sm">
+                                    <span>Return to Vault</span>
+                                </a>
+                            </div>
                         </div>
 
-                        <!-- Unsupported preview notice -->
-                        <div id="previewUnavailableBox" class="preview-unavailable" style="display: none;">
-                            <div class="notice-icon">📄</div>
-                            <h3>Preview not available for this file type</h3>
-                            <p>This file cannot be previewed in the browser, and downloading is disabled by the owner.</p>
+                        <!-- Alert Container -->
+                        <div id="recipientAlert" class="alert-box alert-error" style="display: none;" role="alert">
+                            <svg class="flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span id="recipientAlertMsg"></span>
+                        </div>
+
+                        <!-- Password Required Form -->
+                        <div id="passwordRequiredBox" class="password-box" style="display: none;">
+                            <div class="password-box-icon" aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                            </div>
+                            <h3>Passphrase Protected</h3>
+                            <p>This resource requires client-side Argon2id key derivation. Enter the passphrase to decrypt.</p>
+                            <form id="passwordForm" class="password-form">
+                                <div class="input-group flex-1">
+                                    <input type="password" id="sharePasswordInput" placeholder="Enter decrypt passphrase..." required autofocus aria-label="Share Passphrase">
+                                    <button type="button" class="input-icon-btn" onclick="togglePasswordVisibility('sharePasswordInput', this)" aria-label="Show password">
+                                        <svg class="icon-eye" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                        <svg class="icon-eye-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                                            <line x1="2" x2="22" y1="2" y2="22"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <button type="submit" id="unlockBtn" class="btn btn-primary">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                    </svg>
+                                    <span>Unlock</span>
+                                </button>
+                            </form>
+                            <div id="passwordErrorMsg" class="alert-box alert-error mt-md mb-0" style="display: none;"></div>
+                        </div>
+
+                        <!-- File Details & Action Panel -->
+                        <div id="fileContentBox" style="display: none;">
+                            <div class="file-card">
+                                <div class="file-icon-box" id="fileIcon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                </div>
+                                <div class="file-meta">
+                                    <div class="file-name" id="fileName">Loading...</div>
+                                    <div class="file-sub">
+                                        <span id="fileSize">-- KB</span>
+                                        <span>&bull;</span>
+                                        <span id="fileMime">application/octet-stream</span>
+                                        <span>&bull;</span>
+                                        <span id="permissionBadge" class="badge badge-view">View Only</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Structured Metadata Attributes -->
+                            <div class="meta-grid">
+                                <div class="meta-item">
+                                    <span class="meta-label">Cipher</span>
+                                    <span class="meta-value">AES-256-GCM</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Protocol</span>
+                                    <span class="meta-value">Zero-Knowledge</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-label">Status</span>
+                                    <span class="meta-value text-success">Authorized</span>
+                                </div>
+                            </div>
+
+                            <!-- Download Action -->
+                            <div id="downloadSection" class="mt-lg mb-md" style="display: none;">
+                                <a id="downloadBtn" class="btn btn-success btn-lg" href="#" download>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/>
+                                        <line x1="12" x2="12" y1="15" y2="3"/>
+                                    </svg>
+                                    <span>Download File</span>
+                                </a>
+                            </div>
+
+                            <!-- In-Browser Preview Section -->
+                            <div id="previewSection" style="display: none;">
+                                <div class="preview-wrapper">
+                                    <div class="preview-header">
+                                        <span class="preview-title">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                            <span>File Preview</span>
+                                        </span>
+                                        <span id="previewStatus" class="badge badge-neutral">Decrypted In-Memory</span>
+                                    </div>
+
+                                    <div id="imagePreviewBox" class="preview-image-box" style="display: none;">
+                                        <img id="previewImage" alt="Decrypted Image Preview" src="" />
+                                    </div>
+
+                                    <div id="textPreviewBox" style="display: none;">
+                                        <pre id="previewText" class="preview-text-box"><code>Loading preview...</code></pre>
+                                    </div>
+
+                                    <div id="previewUnavailableBox" class="preview-unavailable" style="display: none;">
+                                        <div class="notice-icon">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                                <polyline points="14 2 14 8 20 8"/>
+                                            </svg>
+                                        </div>
+                                        <h3>Preview Not Supported</h3>
+                                        <p>This file type cannot be previewed in the browser, and downloading is disabled by policy.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="token-lookup-bar">
+                            <a href="share.html">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m15 18-6-6 6-6"/>
+                                </svg>
+                                <span>Back to Vault</span>
+                            </a>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="token-lookup-bar">
-                <a href="share.html">← Back to Share Creator</a>
-            </div>
+                    <!-- =======================================================
+                         CREATOR MODE CONTAINER
+                         ======================================================= -->
+                    <div id="creatorView" class="dashboard-container">
+                        <!-- Dashboard Header & Top Actions -->
+                        <div class="dashboard-header">
+                            <div class="dashboard-header-text">
+                                <h1 class="dashboard-title">Vault Shares</h1>
+                                <p class="dashboard-subtitle">Create and manage client-side encrypted file access grants.</p>
+                            </div>
+                            <div class="dashboard-actions">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="focusShareForm()" id="quickNewShareBtn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    <span>New Share</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Main 2-Column Dashboard Grid -->
+                        <div class="dashboard-main-grid">
+                            <!-- LEFT COLUMN: Share File Grant Form -->
+                            <div class="dashboard-card form-card">
+                                <div class="dashboard-card-header">
+                                    <div class="dashboard-card-header-left">
+                                        <h2 class="dashboard-card-title">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                                                <polyline points="16 6 12 2 8 6"/>
+                                                <line x1="12" x2="12" y1="2" y2="15"/>
+                                            </svg>
+                                            <span>Create Share Link</span>
+                                        </h2>
+                                        <p class="dashboard-card-subtitle">Generate a secure, permission-scoped link for file distribution.</p>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-card-body">
+                                    <form id="shareForm">
+                                        <!-- Source File Selection -->
+                                        <div class="form-group">
+                                            <label class="form-label" for="fileSelect">Source File</label>
+                                            <select id="fileSelect" required aria-label="Select file to share">
+                                                <option value="">Loading encrypted files...</option>
+                                            </select>
+                                            <div class="form-help-text">Select an encrypted vault file.</div>
+                                        </div>
+
+                                        <!-- Recipient Scope -->
+                                        <div class="form-group">
+                                            <label class="form-label" for="recipientSearch">Recipient <span class="form-label-hint">(optional)</span></label>
+                                            <input type="text" id="recipientSearch" placeholder="Username or email address..." aria-label="Recipient search">
+                                            <input type="hidden" id="recipientId">
+                                            <div class="form-help-text">Leave blank to create a public link with token access.</div>
+                                        </div>
+
+                                        <!-- Permissions -->
+                                        <div class="form-group">
+                                            <label class="form-label">Permissions</label>
+                                            <div class="permission-grid">
+                                                <label class="checkbox-label" id="labelPermView">
+                                                    <input type="checkbox" name="can_view" id="permView" checked>
+                                                    <div class="checkbox-content">
+                                                        <div class="checkbox-header">
+                                                            <svg class="perm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                                                <circle cx="12" cy="12" r="3"/>
+                                                            </svg>
+                                                            <span>View</span>
+                                                        </div>
+                                                        <span class="checkbox-desc">Decrypt preview</span>
+                                                    </div>
+                                                </label>
+                                                <label class="checkbox-label" id="labelPermDownload">
+                                                    <input type="checkbox" name="can_download" id="permDownload">
+                                                    <div class="checkbox-content">
+                                                        <div class="checkbox-header">
+                                                            <svg class="perm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                                <polyline points="7 10 12 15 17 10"/>
+                                                                <line x1="12" x2="12" y1="15" y2="3"/>
+                                                            </svg>
+                                                            <span>Download</span>
+                                                        </div>
+                                                        <span class="checkbox-desc">Save to disk</span>
+                                                    </div>
+                                                </label>
+                                                <label class="checkbox-label" id="labelPermEdit">
+                                                    <input type="checkbox" name="can_edit" id="permEdit">
+                                                    <div class="checkbox-content">
+                                                        <div class="checkbox-header">
+                                                            <svg class="perm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                                                            </svg>
+                                                            <span>Edit</span>
+                                                        </div>
+                                                        <span class="checkbox-desc">Re-encrypt</span>
+                                                    </div>
+                                                </label>
+                                                <label class="checkbox-label" id="labelPermReshare">
+                                                    <input type="checkbox" name="can_reshare" id="permReshare">
+                                                    <div class="checkbox-content">
+                                                        <div class="checkbox-header">
+                                                            <svg class="perm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                <circle cx="18" cy="5" r="3"/>
+                                                                <circle cx="6" cy="12" r="3"/>
+                                                                <circle cx="18" cy="19" r="3"/>
+                                                                <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/>
+                                                                <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>
+                                                            </svg>
+                                                            <span>Reshare</span>
+                                                        </div>
+                                                        <span class="checkbox-desc">Issue tokens</span>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Password & Expiration -->
+                                        <div class="form-row-2col">
+                                            <div class="form-group">
+                                                <label class="form-label" for="password">Passphrase <span class="form-label-hint">(optional)</span></label>
+                                                <div class="input-group">
+                                                    <input type="password" id="password" placeholder="Passphrase" aria-label="Share Password">
+                                                    <button type="button" class="input-icon-btn" onclick="togglePasswordVisibility('password', this)" aria-label="Show password">
+                                                        <svg class="icon-eye" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                                            <circle cx="12" cy="12" r="3"/>
+                                                        </svg>
+                                                        <svg class="icon-eye-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                                                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                                                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                                                            <line x1="2" x2="22" y1="2" y2="22"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label class="form-label" for="expiry">Expires At <span class="form-label-hint">(optional)</span></label>
+                                                <input type="datetime-local" id="expiry" aria-label="Expiration Date">
+                                            </div>
+                                        </div>
+
+                                        <!-- Submit Button -->
+                                        <div class="form-submit-row">
+                                            <button type="submit" id="generateBtn" class="btn btn-primary btn-block">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                                </svg>
+                                                <span>Create Share Link</span>
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <!-- Result Panel -->
+                                    <div id="result" class="result grant-issuance-card" role="region" aria-label="Share Link Created">
+                                        <div class="grant-result-header">
+                                            <span class="badge badge-success">Share Link Created</span>
+                                            <span class="grant-result-timestamp">Just Now</span>
+                                        </div>
+
+                                        <!-- Copyable URL Group -->
+                                        <div class="grant-url-box">
+                                            <div class="grant-url-text" id="shareLink"></div>
+                                            <button type="button" class="btn btn-primary btn-sm grant-copy-btn" onclick="copyLink()" id="btnCopyGrantUrl">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                                                </svg>
+                                                <span id="copyLinkText">Copy</span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Security Specifications Strip & QR Drawer Toggle -->
+                                        <div class="grant-security-strip">
+                                            <span class="grant-security-meta">Encrypted client-side</span>
+                                            <button type="button" class="btn-toggle-qr" onclick="toggleQrCodeDrawer(this)">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <rect width="5" height="5" x="3" y="3" rx="1"/>
+                                                    <rect width="5" height="5" x="16" y="3" rx="1"/>
+                                                    <rect width="5" height="5" x="3" y="16" rx="1"/>
+                                                    <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+                                                    <path d="M21 21v.01"/>
+                                                    <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+                                                    <path d="M3 12h.01"/>
+                                                    <path d="M12 3h.01"/>
+                                                    <path d="M12 16v.01"/>
+                                                    <path d="M16 12h1"/>
+                                                    <path d="M21 12v.01"/>
+                                                    <path d="M12 21v-1"/>
+                                                </svg>
+                                                <span>QR Code</span>
+                                            </button>
+                                        </div>
+
+                                        <div class="qr-code-drawer" id="qrCodeDrawer" style="display: none;">
+                                            <div class="qr-code">
+                                                <img id="qrCode" alt="QR Code">
+                                            </div>
+                                            <p class="qr-caption">Scan with mobile camera to decrypt and view payload.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Error Alert -->
+                                    <div id="error" class="alert-box alert-error mt-lg" style="display: none;" role="alert">
+                                        <svg class="flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                        <div>
+                                            <strong>Error:&nbsp;</strong><span id="errorMsg"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT COLUMN: Recent Grants Table -->
+                            <div class="dashboard-right-col">
+                                <div class="dashboard-card table-card">
+                                    <div class="dashboard-card-header">
+                                        <div class="dashboard-card-header-left">
+                                            <h2 class="dashboard-card-title">
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <circle cx="12" cy="12" r="10"/>
+                                                    <polyline points="12 6 12 12 16 14"/>
+                                                </svg>
+                                                <span>Recent Share Grants</span>
+                                            </h2>
+                                            <p class="dashboard-card-subtitle">Active access tokens provisioned across your vault</p>
+                                        </div>
+                                        <div class="d-flex align-center gap-sm">
+                                            <span class="table-count-tag" id="grantCountBadge">4 grants</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Table Search & Filter Toolbar -->
+                                    <div class="table-toolbar">
+                                        <div class="table-search-box">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                            </svg>
+                                            <input type="text" class="table-search-input" id="grantSearchInput" placeholder="Filter grants by filename or scope..." oninput="filterGrantsTable()" aria-label="Filter grants">
+                                        </div>
+                                        <div class="table-toolbar-actions">
+                                            <div class="table-filter-pills" role="tablist" aria-label="Filter share status">
+                                                <button type="button" class="table-filter-btn active" data-filter="all" onclick="setGrantFilter('all', this)">All</button>
+                                                <button type="button" class="table-filter-btn" data-filter="active" onclick="setGrantFilter('active', this)">Active</button>
+                                                <button type="button" class="table-filter-btn" data-filter="expiring" onclick="setGrantFilter('expiring', this)">Expiring</button>
+                                                <button type="button" class="table-filter-btn" data-filter="expired" onclick="setGrantFilter('expired', this)">Expired</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="dashboard-card-body p-0">
+                                        <!-- Table Skeleton Loading State -->
+                                        <div id="grantsLoadingSkeleton" class="table-skeleton-wrapper" style="display: none;">
+                                            <div class="skeleton-row">
+                                                <div class="skeleton-bar skeleton-avatar"></div>
+                                                <div class="skeleton-col">
+                                                    <div class="skeleton-bar w-55 h-12"></div>
+                                                    <div class="skeleton-bar w-30 skeleton-subtext"></div>
+                                                </div>
+                                                <div class="skeleton-bar skeleton-badge"></div>
+                                                <div class="skeleton-bar w-65 h-12"></div>
+                                                <div class="skeleton-bar skeleton-btn"></div>
+                                            </div>
+                                            <div class="skeleton-row">
+                                                <div class="skeleton-bar skeleton-avatar"></div>
+                                                <div class="skeleton-col">
+                                                    <div class="skeleton-bar w-70 h-12"></div>
+                                                    <div class="skeleton-bar w-35 skeleton-subtext"></div>
+                                                </div>
+                                                <div class="skeleton-bar skeleton-badge w-80"></div>
+                                                <div class="skeleton-bar w-60 h-12"></div>
+                                                <div class="skeleton-bar skeleton-btn"></div>
+                                            </div>
+                                            <div class="skeleton-row">
+                                                <div class="skeleton-bar skeleton-avatar"></div>
+                                                <div class="skeleton-col">
+                                                    <div class="skeleton-bar w-48 h-12"></div>
+                                                    <div class="skeleton-bar w-25 skeleton-subtext"></div>
+                                                </div>
+                                                <div class="skeleton-bar skeleton-badge"></div>
+                                                <div class="skeleton-bar w-55 h-12"></div>
+                                                <div class="skeleton-bar skeleton-btn"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Enterprise Table -->
+                                        <div class="activity-table-wrapper" id="grantsTableWrapper">
+                                            <table class="activity-table" aria-label="Recent file share grants">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="th-file">
+                                                            <span class="th-sort-header">
+                                                                <span>Target File</span>
+                                                                <svg class="th-sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                    <polyline points="6 9 12 15 18 9"/>
+                                                                </svg>
+                                                            </span>
+                                                        </th>
+                                                        <th class="th-scope">
+                                                            <span class="th-sort-header">
+                                                                <span>Scope &amp; Grant</span>
+                                                                <svg class="th-sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                    <polyline points="6 9 12 15 18 9"/>
+                                                                </svg>
+                                                            </span>
+                                                        </th>
+                                                        <th class="th-expiry">
+                                                            <span class="th-sort-header">
+                                                                <span>Expiry</span>
+                                                                <svg class="th-sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                    <polyline points="6 9 12 15 18 9"/>
+                                                                </svg>
+                                                            </span>
+                                                        </th>
+                                                        <th class="th-actions">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="recentGrantsBody">
+                                                    <tr data-status="active" data-filename="audit_q3_report.xlsx" data-scope="download">
+                                                        <td>
+                                                            <div class="table-file-cell">
+                                                                <div class="table-file-icon" aria-hidden="true">
+                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                                                        <polyline points="14 2 14 8 20 8"/>
+                                                                    </svg>
+                                                                </div>
+                                                                <div class="table-file-info">
+                                                                    <span class="table-file-title" title="audit_q3_report.xlsx">audit_q3_report.xlsx</span>
+                                                                    <span class="table-file-meta">2.4 MB &bull; Spreadsheet</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="table-scope-col">
+                                                                <span class="badge badge-download text-2xs">
+                                                                    <span class="badge-dot"></span>
+                                                                    Download
+                                                                </span>
+                                                                <span class="table-recipient-sub">cfo@enterprise.io</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="table-status-cell">
+                                                                <span class="status-indicator-dot active"></span>
+                                                                <span class="text-success">4d left</span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="table-action-cell">
+                                                            <div class="table-action-group">
+                                                                <button type="button" class="table-action-btn" onclick="copyGrantToken('token_audit_q3_2026', this)" title="Copy Share Link">
+                                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                                                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                                                                    </svg>
+                                                                    <span>Copy</span>
+                                                                </button>
+                                                                <button type="button" class="table-action-btn table-action-btn-danger" onclick="promptRevokeGrant('token_audit_q3_2026', 'audit_q3_report.xlsx', this)" title="Revoke access grant">
+                                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <circle cx="12" cy="12" r="10"/>
+                                                                        <line x1="15" y1="9" x2="9" y2="15"/>
+                                                                        <line x1="9" y1="9" x2="15" y2="15"/>
+                                                                    </svg>
+                                                                    <span>Revoke</span>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr data-status="active" data-filename="vendor_nda_signed.pdf" data-scope="view">
+                                                        <td>
+                                                            <div class="table-file-cell">
+                                                                <div class="table-file-icon" aria-hidden="true">
+                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                                                        <polyline points="14 2 14 8 20 8"/>
+                                                                    </svg>
+                                                                </div>
+                                                                <div class="table-file-info">
+                                                                    <span class="table-file-title" title="vendor_nda_signed.pdf">vendor_nda_signed.pdf</span>
+                                                                    <span class="table-file-meta">580 KB &bull; PDF Doc</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="table-scope-col">
+                                                                <span class="badge badge-view text-2xs">
+                                                                    <span class="badge-dot"></span>
+                                                                    View Only
+                                                                </span>
+                                                                <span class="table-recipient-sub">Universal Link</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="table-status-cell">
+                                                                <span class="status-indicator-dot active"></span>
+                                                                <span class="text-secondary">6d left</span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="table-action-cell">
+                                                            <div class="table-action-group">
+                                                                <button type="button" class="table-action-btn" onclick="copyGrantToken('token_nda_signed_912', this)" title="Copy Share Link">
+                                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                                                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                                                                    </svg>
+                                                                    <span>Copy</span>
+                                                                </button>
+                                                                <button type="button" class="table-action-btn table-action-btn-danger" onclick="promptRevokeGrant('token_nda_signed_912', 'vendor_nda_signed.pdf', this)" title="Revoke access grant">
+                                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <circle cx="12" cy="12" r="10"/>
+                                                                        <line x1="15" y1="9" x2="9" y2="15"/>
+                                                                        <line x1="9" y1="9" x2="15" y2="15"/>
+                                                                    </svg>
+                                                                    <span>Revoke</span>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr data-status="expiring" data-filename="id_rsa_backup.pem.enc" data-scope="password">
+                                                        <td>
+                                                            <div class="table-file-cell">
+                                                                <div class="table-file-icon badge-warning" aria-hidden="true">
+                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                                                    </svg>
+                                                                </div>
+                                                                <div class="table-file-info">
+                                                                    <span class="table-file-title" title="id_rsa_backup.pem.enc">id_rsa_backup.pem.enc</span>
+                                                                    <span class="table-file-meta">3.2 KB &bull; Encrypted Key</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="table-scope-col">
+                                                                <span class="badge badge-warning text-2xs">
+                                                                    <span class="badge-dot"></span>
+                                                                    Passphrase
+                                                                </span>
+                                                                <span class="table-recipient-sub">devops-lead@core</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="table-status-cell">
+                                                                <span class="status-indicator-dot warning"></span>
+                                                                <span class="text-warning">12h left</span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="table-action-cell">
+                                                            <div class="table-action-group">
+                                                                <button type="button" class="table-action-btn" onclick="copyGrantToken('token_rsa_backup_priv', this)" title="Copy Share Link">
+                                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                                                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                                                                    </svg>
+                                                                    <span>Copy</span>
+                                                                </button>
+                                                                <button type="button" class="table-action-btn table-action-btn-danger" onclick="promptRevokeGrant('token_rsa_backup_priv', 'id_rsa_backup.pem.enc', this)" title="Revoke access grant">
+                                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <circle cx="12" cy="12" r="10"/>
+                                                                        <line x1="15" y1="9" x2="9" y2="15"/>
+                                                                        <line x1="9" y1="9" x2="15" y2="15"/>
+                                                                    </svg>
+                                                                    <span>Revoke</span>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr data-status="expired" data-filename="api_schema_v2.json" data-scope="view">
+                                                        <td>
+                                                            <div class="table-file-cell">
+                                                                <div class="table-file-icon text-muted" aria-hidden="true">
+                                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                                                        <polyline points="14 2 14 8 20 8"/>
+                                                                    </svg>
+                                                                </div>
+                                                                <div class="table-file-info">
+                                                                    <span class="table-file-title text-muted" title="api_schema_v2.json">api_schema_v2.json</span>
+                                                                    <span class="table-file-meta">18.4 KB &bull; JSON Schema</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="table-scope-col">
+                                                                <span class="badge badge-neutral text-2xs">
+                                                                    <span class="badge-dot"></span>
+                                                                    View Only
+                                                                </span>
+                                                                <span class="table-recipient-sub">Universal Link</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="table-status-cell">
+                                                                <span class="status-indicator-dot expired"></span>
+                                                                <span class="text-muted">Expired</span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="table-action-cell">
+                                                            <div class="table-action-group">
+                                                                <button type="button" class="table-action-btn" onclick="copyGrantToken('token_api_schema_v2', this)" title="Copy Share Link">
+                                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                        <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                                                        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                                                                    </svg>
+                                                                    <span>Copy</span>
+                                                                </button>
+                                                                <button type="button" class="table-action-btn" disabled title="Grant already expired">
+                                                                    <span>Revoked</span>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <!-- Table Footer Summary Bar -->
+                                            <div class="table-footer">
+                                                <span id="tableFooterCount">Showing 4 of 4 grants</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Table Empty State Component -->
+                                        <div id="grantsEmptyState" class="table-empty-state" style="display: none;">
+                                            <div class="empty-icon-slot" aria-hidden="true">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                                    <circle cx="11" cy="11" r="8"/>
+                                                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                                    <line x1="8" y1="11" x2="14" y2="11"/>
+                                                </svg>
+                                            </div>
+                                            <h4 class="empty-title">No matching share grants</h4>
+                                            <p class="empty-subtitle">No active grants match the current search filter or status selection.</p>
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearGrantFilter()">
+                                                <span>Clear Filter</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
         </div>
+    </div>
 
-        <!-- CREATOR MODE CONTAINER -->
-        <div id="creatorView">
-            <h1>🔒 Share a File</h1>
-            <p class="subtitle">Generate a secure, encrypted share link</p>
-
-            <form id="shareForm">
-                <div class="step">
-                    <div class="step-title">
-                        <span class="step-number">1</span>
-                        Select File
-                    </div>
-                    <select id="fileSelect" required>
-                        <option value="">Loading files...</option>
-                    </select>
+    <!-- Token Lookup / Command Palette Modal Dialog -->
+    <div id="lookupTokenModal" class="confirm-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="lookupTokenTitle">
+        <div class="confirm-modal">
+            <div class="confirm-modal-header">
+                <div class="header-icon" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.3-4.3"/>
+                    </svg>
                 </div>
-
-                <div class="step">
-                    <div class="step-title">
-                        <span class="step-number">2</span>
-                        Recipient (optional — leave blank for "anyone with link")
-                    </div>
-                    <input type="text" id="recipientSearch" placeholder="Search by username or email...">
-                    <input type="hidden" id="recipientId">
+                <span id="lookupTokenTitle">Open Encrypted Share</span>
+            </div>
+            <form id="lookupTokenForm" onsubmit="handleTokenModalSubmit(event)">
+                <div class="confirm-modal-body">
+                    <p>Enter a cryptographic share token, slug, or paste a full share link to decrypt and view the payload:</p>
+                    <input type="text" id="modalTokenInput" class="confirm-modal-input" placeholder="e.g. token_audit_q3_2026 or full URL" autocomplete="off" required>
+                    <div class="confirm-modal-help">Press <kbd class="nav-shortcut">Enter</kbd> to decrypt or <kbd class="nav-shortcut">Esc</kbd> to dismiss.</div>
                 </div>
-
-                <div class="step">
-                    <div class="step-title">
-                        <span class="step-number">3</span>
-                        Permissions
-                    </div>
-                    <div class="permission-grid">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="can_view" id="permView" checked>
-                            <span>👁️ View</span>
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="can_download" id="permDownload">
-                            <span>⬇️ Download</span>
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="can_edit" id="permEdit">
-                            <span>✏️ Edit</span>
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="can_reshare" id="permReshare">
-                            <span>↗️ Reshare</span>
-                        </label>
-                    </div>
+                <div class="confirm-modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeTokenModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                        <span>Open Vault Grant</span>
+                    </button>
                 </div>
-
-                <div class="step">
-                    <div class="step-title">
-                        <span class="step-number">4</span>
-                        Password Protection (optional)
-                    </div>
-                    <input type="password" id="password" placeholder="Leave empty for no password">
-                </div>
-
-                <div class="step">
-                    <div class="step-title">
-                        <span class="step-number">5</span>
-                        Expiry (optional)
-                    </div>
-                    <input type="datetime-local" id="expiry">
-                </div>
-
-                <button type="submit" id="generateBtn" class="btn">🔗 Generate Share Link</button>
             </form>
+        </div>
+    </div>
 
-            <div id="result" class="result">
-                <h3 style="color: #15803d; margin-bottom: 8px;">✓ Share Created!</h3>
-                <div class="share-link" id="shareLink"></div>
-                <div class="qr-code">
-                    <img id="qrCode" alt="QR Code">
+    <!-- Revocation Confirmation Modal Dialog -->
+    <div id="confirmRevokeModal" class="confirm-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="confirmRevokeTitle">
+        <div class="confirm-modal">
+            <div class="confirm-modal-header">
+                <div class="header-icon" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
                 </div>
-                <button class="btn btn-success" onclick="copyLink()">📋 Copy Link</button>
+                <span id="confirmRevokeTitle">Revoke Access Grant</span>
             </div>
-
-            <div id="error" class="alert-box alert-error" style="display: none; margin-top: 20px;">
-                <strong>Error:</strong>&nbsp;<span id="errorMsg"></span>
+            <div class="confirm-modal-body">
+                <p>Are you sure you want to revoke this cryptographic access grant? Any recipient holding this link or token will immediately be denied access.</p>
+                <div class="confirm-resource-box">
+                    <span class="confirm-resource-label">Target Resource</span>
+                    <span id="confirmRevokeFilename" class="confirm-resource-name">audit_q3_report.xlsx</span>
+                </div>
             </div>
-
-            <div class="token-lookup-bar">
-                Have a share token or custom slug?
-                <a href="javascript:void(0)" onclick="promptLookupToken()">Open Shared File</a>
+            <div class="confirm-modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeRevokeModal()">Cancel</button>
+                <button type="button" class="btn btn-destructive btn-sm" id="confirmRevokeActionBtn" onclick="executeRevokeGrant()">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    <span>Revoke Grant</span>
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        const API = window.location.origin + '/api';
+        // ==========================================
+        // Sidebar Drawer Toggle for Mobile
+        // ==========================================
+        function toggleSidebar(open = null) {
+            if (open === null) {
+                document.body.classList.toggle('sidebar-open');
+            } else if (open) {
+                document.body.classList.add('sidebar-open');
+            } else {
+                document.body.classList.remove('sidebar-open');
+            }
+        }
+
+        // ==========================================
+        // Theme Engine
+        // ==========================================
+        const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        applyTheme(savedTheme);
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            const iconSun = document.getElementById('themeIconSun');
+            const iconMoon = document.getElementById('themeIconMoon');
+            if (iconSun && iconMoon) {
+                if (theme === 'dark') {
+                    iconSun.style.display = 'inline';
+                    iconMoon.style.display = 'none';
+                } else {
+                    iconSun.style.display = 'none';
+                    iconMoon.style.display = 'inline';
+                }
+            }
+        }
+
+        document.getElementById('themeToggleBtn').addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            if (typeof showToast === 'function') {
+                showToast({
+                    type: 'info',
+                    title: 'Theme Changed',
+                    message: `Switched to ${next === 'dark' ? 'Dark' : 'Light'} theme.`
+                });
+            }
+        });
+
+        // ==========================================
+        // Auth State in Sidebar Footer
+        // ==========================================
+        const storedToken = localStorage.getItem('access_token');
+        const navLoginBtn = document.getElementById('navLoginBtn');
+        const navLogoutBtn = document.getElementById('navLogoutBtn');
+        const sidebarUserEmail = document.getElementById('sidebarUserEmail');
+        const sidebarUserRole = document.getElementById('sidebarUserRole');
+        const userAvatarInitial = document.getElementById('userAvatarInitial');
+
+        if (storedToken) {
+            if (navLogoutBtn) navLogoutBtn.style.display = 'inline-flex';
+            if (navLoginBtn) navLoginBtn.style.display = 'none';
+            try {
+                const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                if (storedUser.email) {
+                    sidebarUserEmail.textContent = storedUser.email;
+                    sidebarUserRole.textContent = storedUser.is_admin ? 'Admin' : 'Active User';
+                    userAvatarInitial.textContent = (storedUser.username || storedUser.email)[0].toUpperCase();
+                }
+            } catch (e) {}
+        } else {
+            if (navLoginBtn) navLoginBtn.style.display = 'inline-flex';
+            if (navLogoutBtn) navLogoutBtn.style.display = 'none';
+            sidebarUserEmail.textContent = 'Guest Session';
+            sidebarUserRole.textContent = 'Read-Only Mode';
+            userAvatarInitial.textContent = 'G';
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            window.location.reload();
+        }
+
+        // ==========================================
+        // Password Visibility Toggle
+        // ==========================================
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const eyeIcon = btn.querySelector('.icon-eye');
+            const eyeOffIcon = btn.querySelector('.icon-eye-off');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (eyeIcon) eyeIcon.style.display = 'none';
+                if (eyeOffIcon) eyeOffIcon.style.display = 'inline';
+                btn.setAttribute('aria-label', 'Hide password');
+            } else {
+                input.type = 'password';
+                if (eyeIcon) eyeIcon.style.display = 'inline';
+                if (eyeOffIcon) eyeOffIcon.style.display = 'none';
+                btn.setAttribute('aria-label', 'Show password');
+            }
+        }
+
+        // Checkbox visual tracking
+        ['permView', 'permDownload', 'permEdit', 'permReshare'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                const updateLabel = () => {
+                    const label = input.closest('.checkbox-label');
+                    if (label) {
+                        if (input.checked) label.classList.add('is-checked');
+                        else label.classList.remove('is-checked');
+                    }
+                };
+                input.addEventListener('change', updateLabel);
+                updateLabel();
+            }
+        });
+
+        // API Endpoint (robust for both server and local file execution)
+        const API = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+            ? window.location.origin + '/api'
+            : 'http://127.0.0.1:5000/api';
+
         const urlParams = new URLSearchParams(window.location.search);
         const shareToken = urlParams.get('token') || urlParams.get('share') || urlParams.get('slug') || (window.location.hash ? window.location.hash.substring(1) : null);
         let currentGrantToken = null;
 
-        // Determine File Icon by MIME / filename
         function getFileIcon(mime, filename) {
-            if (!mime) mime = '';
-            if (!filename) filename = '';
-            if (mime.startsWith('image/')) return '🖼️';
-            if (mime.startsWith('video/')) return '🎬';
-            if (mime.startsWith('audio/')) return '🎵';
-            if (mime === 'application/pdf' || filename.endsWith('.pdf')) return '📕';
-            if (mime.startsWith('text/') || /\.(txt|md|csv|log|json|xml|yaml|yml)$/i.test(filename)) return '📝';
-            if (/\.(zip|tar|gz|rar|7z)$/i.test(filename)) return '📦';
-            if (/\.(js|py|html|css|ts|cpp|c|go|rs|java)$/i.test(filename)) return '💻';
-            return '📄';
+            return `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+            `;
         }
 
         function formatBytes(bytes) {
@@ -672,17 +1132,151 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
-        function promptLookupToken() {
-            const token = prompt("Enter share token or custom slug:");
-            if (token && token.trim()) {
-                window.location.search = '?token=' + encodeURIComponent(token.trim());
-            }
+        function openTokenModal() {
+            const modal = document.getElementById('lookupTokenModal');
+            const input = document.getElementById('modalTokenInput');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                }
+            }, 60);
         }
 
+        function closeTokenModal() {
+            const modal = document.getElementById('lookupTokenModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function handleTokenModalSubmit(e) {
+            if (e) e.preventDefault();
+            const input = document.getElementById('modalTokenInput');
+            if (!input) return;
+            let val = input.value.trim();
+            if (!val) return;
+            if (val.includes('?token=')) {
+                try {
+                    const url = new URL(val, window.location.origin);
+                    val = url.searchParams.get('token') || val;
+                } catch (_) {}
+            }
+            window.location.search = '?token=' + encodeURIComponent(val);
+        }
+
+        function promptLookupToken() {
+            openTokenModal();
+        }
+
+        // Global Command/Control + K shortcut for enterprise token search
+        window.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                const modal = document.getElementById('lookupTokenModal');
+                if (modal && modal.style.display !== 'none') {
+                    closeTokenModal();
+                } else {
+                    openTokenModal();
+                }
+            }
+            if (e.key === 'Escape') {
+                closeTokenModal();
+                closeRevokeModal();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const tokenModal = document.getElementById('lookupTokenModal');
+            if (tokenModal && e.target === tokenModal) {
+                closeTokenModal();
+            }
+            const revokeModal = document.getElementById('confirmRevokeModal');
+            if (revokeModal && e.target === revokeModal) {
+                closeRevokeModal();
+            }
+        });
+
+
+        // ==========================================
+        // Enterprise Toast Notification Helper
+        // ==========================================
+        function showToast({ type = 'info', title = '', message = '', duration = 3200 } = {}) {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+
+            const icons = {
+                success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+                warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+                error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+                info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.setAttribute('role', 'status');
+            toast.innerHTML = `
+                <div class="toast-icon-slot">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    ${title ? `<div class="toast-title">${title}</div>` : ''}
+                    ${message ? `<div class="toast-desc">${message}</div>` : ''}
+                </div>
+                <button type="button" class="toast-close-btn" aria-label="Dismiss notification" onclick="dismissToast(this)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                dismissToast(toast);
+            }, duration);
+        }
+
+        function dismissToast(el) {
+            const toast = el.closest ? el.closest('.toast') : el;
+            if (!toast || toast.classList.contains('toast-hiding')) return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                toast.remove();
+            } else {
+                toast.classList.add('toast-hiding');
+                setTimeout(() => toast.remove(), 140);
+            }
+        }
+        window.dismissToast = dismissToast;
+        window.showToast = showToast;
+
         function copyLink() {
-            const link = document.getElementById('shareLink').textContent;
+            const link = document.getElementById('shareLink')?.textContent;
+            if (!link) return;
+            const textSpan = document.getElementById('copyLinkText');
+            const btn = document.getElementById('btnCopyGrantUrl');
             navigator.clipboard.writeText(link).then(() => {
-                alert('Link copied to clipboard!');
+                if (textSpan) textSpan.textContent = 'Copied!';
+                if (btn) {
+                    btn.style.backgroundColor = 'var(--success-bg)';
+                    btn.style.color = 'var(--success-text)';
+                    btn.style.borderColor = 'var(--success-border)';
+                }
+                showToast({ type: 'success', title: 'Share Link Copied', message: 'The link has been copied to your clipboard.' });
+                setTimeout(() => {
+                    if (textSpan) textSpan.textContent = 'Copy';
+                    if (btn) {
+                        btn.style.backgroundColor = '';
+                        btn.style.color = '';
+                        btn.style.borderColor = '';
+                    }
+                }, 1800);
+            }).catch(() => {
+                prompt('Copy this share URL:', link);
             });
         }
 
@@ -692,6 +1286,9 @@
         if (shareToken) {
             document.getElementById('creatorView').style.display = 'none';
             document.getElementById('recipientView').style.display = 'block';
+            document.getElementById('bcActiveContext').textContent = 'Shared File';
+            const navShare = document.getElementById('navItemShare');
+            if (navShare) navShare.classList.remove('active');
             loadShareMetadata(shareToken);
         } else {
             // ==========================================
@@ -706,11 +1303,15 @@
             const alertMsg = document.getElementById('recipientAlertMsg');
             const pwdBox = document.getElementById('passwordRequiredBox');
             const contentBox = document.getElementById('fileContentBox');
+            const errState = document.getElementById('recipientErrorState');
+            const errTitle = document.getElementById('recipientErrorTitle');
+            const errDesc = document.getElementById('recipientErrorDesc');
 
             loading.style.display = 'flex';
             alertBox.style.display = 'none';
             pwdBox.style.display = 'none';
             contentBox.style.display = 'none';
+            if (errState) errState.style.display = 'none';
 
             const headers = {};
             const authToken = localStorage.getItem('access_token');
@@ -734,25 +1335,44 @@
                 }
 
                 if (!res.ok) {
+                    document.getElementById('viewSubtitle').textContent = 'Access Error';
+                    if (errState && (res.status === 404 || res.status === 410 || res.status === 403)) {
+                        if (res.status === 404) {
+                            if (errTitle) errTitle.textContent = 'Share Link Not Found';
+                            if (errDesc) errDesc.textContent = 'The requested file share token does not exist or may have been revoked by the owner.';
+                        } else if (res.status === 410) {
+                            if (errTitle) errTitle.textContent = 'Share Link Expired';
+                            if (errDesc) errDesc.textContent = 'This file share link has expired or reached its maximum access limit. Please request a new link from the sender.';
+                        } else if (res.status === 403) {
+                            if (errTitle) errTitle.textContent = 'Access Forbidden';
+                            if (errDesc) errDesc.textContent = data.error || 'You do not have permission to access this cryptographic share.';
+                        }
+                        errState.style.display = 'flex';
+                        return;
+                    }
+
                     alertBox.className = 'alert-box alert-error';
                     alertMsg.textContent = data.error || `Unable to access share (HTTP ${res.status})`;
                     alertBox.style.display = 'flex';
-                    document.getElementById('viewSubtitle').textContent = 'Access Error';
                     return;
                 }
 
-                // Render File Info
                 renderShareContent(token, data, grantToken);
 
             } catch (err) {
                 loading.style.display = 'none';
-                alertBox.className = 'alert-box alert-error';
-                alertMsg.textContent = 'Network error connecting to server: ' + err.message;
-                alertBox.style.display = 'flex';
+                if (errState) {
+                    if (errTitle) errTitle.textContent = 'Vault Connection Error';
+                    if (errDesc) errDesc.textContent = 'Unable to connect to the secure vault server. Please check your network connection and try again.';
+                    errState.style.display = 'flex';
+                } else {
+                    alertBox.className = 'alert-box alert-error';
+                    alertMsg.textContent = 'Network error connecting to server: ' + err.message;
+                    alertBox.style.display = 'flex';
+                }
             }
         }
 
-        // Password submit handler
         document.getElementById('passwordForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const pwdInput = document.getElementById('sharePasswordInput');
@@ -760,8 +1380,9 @@
             const pwdError = document.getElementById('passwordErrorMsg');
 
             pwdError.style.display = 'none';
+            unlockBtn.classList.add('btn-loading');
             unlockBtn.disabled = true;
-            unlockBtn.textContent = 'Verifying...';
+            unlockBtn.innerHTML = '<span class="btn-spinner"></span><span>Verifying...</span>';
 
             try {
                 const res = await fetch(`${API}/shares/${encodeURIComponent(shareToken)}/verify-password`, {
@@ -773,17 +1394,45 @@
 
                 if (res.ok && data.grant_token) {
                     currentGrantToken = data.grant_token;
+                    if (typeof showToast === 'function') {
+                        showToast({
+                            type: 'success',
+                            title: 'Key Derived',
+                            message: 'Argon2id key derived. Decrypting file payload...'
+                        });
+                    }
                     loadShareMetadata(shareToken, currentGrantToken);
                 } else {
-                    pwdError.textContent = data.error || 'Incorrect password';
-                    pwdError.style.display = 'block';
+                    pwdError.innerHTML = `
+                        <svg class="flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span>${data.error || 'Incorrect passphrase. Please check and try again.'}</span>
+                    `;
+                    pwdError.style.display = 'flex';
                 }
             } catch (err) {
-                pwdError.textContent = 'Error verifying password: ' + err.message;
-                pwdError.style.display = 'block';
+                pwdError.innerHTML = `
+                    <svg class="flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>Error verifying password: ${err.message}</span>
+                `;
+                pwdError.style.display = 'flex';
             } finally {
+                unlockBtn.classList.remove('btn-loading');
                 unlockBtn.disabled = false;
-                unlockBtn.textContent = 'Unlock';
+                unlockBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <span>Unlock</span>
+                `;
             }
         });
 
@@ -814,7 +1463,8 @@
             document.getElementById('fileName').textContent = file.filename;
             document.getElementById('fileSize').textContent = formatBytes(file.size_bytes);
             document.getElementById('fileMime').textContent = file.mime_type || 'application/octet-stream';
-            document.getElementById('fileIcon').textContent = getFileIcon(file.mime_type, file.filename);
+            document.getElementById('fileIcon').innerHTML = getFileIcon(file.mime_type, file.filename);
+            document.getElementById('bcActiveContext').textContent = file.filename;
 
             const permBadge = document.getElementById('permissionBadge');
             const downloadSection = document.getElementById('downloadSection');
@@ -823,14 +1473,11 @@
             const textPreviewBox = document.getElementById('textPreviewBox');
             const previewUnavailableBox = document.getElementById('previewUnavailableBox');
 
-            // Reset visibility
             downloadSection.style.display = 'none';
             previewSection.style.display = 'none';
             imagePreviewBox.style.display = 'none';
             textPreviewBox.style.display = 'none';
             previewUnavailableBox.style.display = 'none';
-            previewUnavailableBox.querySelector('h3').textContent = 'Preview not available for this file type';
-            previewUnavailableBox.querySelector('p').textContent = 'This file cannot be previewed in the browser, and downloading is disabled by the owner.';
 
             const canDownload = perms.can_download === true;
             const canView = perms.can_view === true;
@@ -843,7 +1490,7 @@
                 const downloadBtn = document.getElementById('downloadBtn');
                 downloadBtn.onclick = async (e) => {
                     e.preventDefault();
-                    downloadBtn.textContent = '⏳ Decrypting download...';
+                    downloadBtn.innerHTML = '<span>Decrypting download...</span>';
                     downloadBtn.classList.add('disabled');
                     try {
                         const headers = {};
@@ -865,13 +1512,20 @@
                     } catch (err) {
                         alert('Download error: ' + err.message);
                     } finally {
-                        downloadBtn.textContent = '⬇️ Download File';
+                        downloadBtn.innerHTML = `
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" x2="12" y1="15" y2="3"/>
+                            </svg>
+                            <span>Download File</span>
+                        `;
                         downloadBtn.classList.remove('disabled');
                     }
                 };
             } else if (canView) {
                 permBadge.className = 'badge badge-view';
-                permBadge.textContent = 'View Only (Download Disabled)';
+                permBadge.textContent = 'View Only';
                 previewSection.style.display = 'block';
                 mainContainer.classList.add('wide');
 
@@ -879,14 +1533,12 @@
                 const filename = file.filename || '';
                 const size = file.size_bytes || 0;
 
-                // Setup headers for preview
                 const previewHeaders = {};
                 if (grantToken) previewHeaders['X-Share-Grant'] = grantToken;
                 const authToken = localStorage.getItem('access_token');
                 if (authToken) previewHeaders['Authorization'] = `Bearer ${authToken}`;
 
                 if (isImage(mime, filename)) {
-                    // IMAGE PREVIEW
                     imagePreviewBox.style.display = 'block';
                     const imgEl = document.getElementById('previewImage');
                     imgEl.alt = 'Decrypting preview...';
@@ -903,15 +1555,14 @@
                     } catch (err) {
                         imagePreviewBox.style.display = 'none';
                         previewUnavailableBox.style.display = 'block';
-                        previewUnavailableBox.querySelector('h3').textContent = 'Unable to render image preview';
+                        previewUnavailableBox.querySelector('h3').textContent = 'Unable to render image';
                         previewUnavailableBox.querySelector('p').textContent = err.message;
                     }
 
                 } else if (isPlainText(mime, filename) && size <= 1048576) {
-                    // TEXT PREVIEW (under 1MB)
                     textPreviewBox.style.display = 'block';
                     const textEl = document.getElementById('previewText');
-                    textEl.textContent = 'Decrypting text preview...';
+                    textEl.textContent = 'Decrypting text...';
 
                     try {
                         const res = await fetch(`${API}/shares/${encodeURIComponent(token)}/preview`, {
@@ -923,16 +1574,15 @@
                     } catch (err) {
                         textPreviewBox.style.display = 'none';
                         previewUnavailableBox.style.display = 'block';
-                        previewUnavailableBox.querySelector('h3').textContent = 'Unable to render text preview';
+                        previewUnavailableBox.querySelector('h3').textContent = 'Unable to render text';
                         previewUnavailableBox.querySelector('p').textContent = err.message;
                     }
 
                 } else {
-                    // UNSUPPORTED TYPE OR SIZE > 1MB: DO NOT DOWNLOAD, SHOW NOTICE
                     previewUnavailableBox.style.display = 'block';
                     if (size > 1048576 && isPlainText(mime, filename)) {
                         previewUnavailableBox.querySelector('p').textContent =
-                            'This text file exceeds the 1MB in-browser preview limit, and downloading is disabled by the owner.';
+                            'Text exceeds 1MB in-browser preview limit, and downloading is restricted.';
                     }
                 }
             } else {
@@ -950,19 +1600,24 @@
         function initCreatorMode() {
             const token = localStorage.getItem('access_token');
             if (!token) {
-                // Show a helpful prompt without force-navigating if user hasn't logged in
                 const select = document.getElementById('fileSelect');
-                select.innerHTML = '<option value="">Please log in to share files</option>';
+                select.innerHTML = '<option value="">Sign in required to create shares</option>';
                 const generateBtn = document.getElementById('generateBtn');
-                generateBtn.textContent = '🔑 Log in to Share Files';
+                generateBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" x2="3" y1="12" y2="12"/>
+                    </svg>
+                    <span>Sign in to Share Files</span>
+                `;
                 generateBtn.onclick = (e) => {
                     e.preventDefault();
-                    window.location.href = '/login.html';
+                    window.location.href = 'login.html';
                 };
                 return;
             }
 
-            // Load files
             fetch(`${API}/files`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
@@ -977,7 +1632,6 @@
                 document.getElementById('fileSelect').innerHTML = '<option value="">Error loading files</option>';
             });
 
-            // Handle form submit
             document.getElementById('shareForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
 
@@ -985,8 +1639,9 @@
                 if (!fileId) return alert('Please select a file');
 
                 const btn = document.getElementById('generateBtn');
+                btn.classList.add('btn-loading');
                 btn.disabled = true;
-                btn.textContent = '⏳ Creating share...';
+                btn.innerHTML = '<span class="btn-spinner"></span><span>Creating share...</span>';
 
                 const recipientId = document.getElementById('recipientId').value;
                 const permissions = {
@@ -1025,15 +1680,257 @@
                     document.getElementById('result').classList.add('show');
                     document.getElementById('error').style.display = 'none';
 
+                    showToast({
+                        type: 'success',
+                        title: 'Share Link Created',
+                        message: 'Cryptographic grant and QR code generated.'
+                    });
+
                 } catch (err) {
                     document.getElementById('errorMsg').textContent = err.message;
                     document.getElementById('error').style.display = 'flex';
                     document.getElementById('result').classList.remove('show');
+                    showToast({
+                        type: 'error',
+                        title: 'Creation Failed',
+                        message: err.message
+                    });
                 } finally {
+                    btn.classList.remove('btn-loading');
                     btn.disabled = false;
-                    btn.textContent = '🔗 Generate Share Link';
+                    btn.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        <span>Create Share Link</span>
+                    `;
                 }
             });
+        }
+
+        // ==========================================
+        // Enterprise Dashboard Quick Actions
+        // ==========================================
+        function focusShareForm() {
+            const fileSel = document.getElementById('fileSelect');
+            if (fileSel) {
+                fileSel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                fileSel.focus();
+            }
+        }
+
+        function copyGrantToken(token, btn) {
+            const shareUrl = `${window.location.origin}/static/share.html?token=${encodeURIComponent(token)}`;
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Copied!</span>
+                `;
+                btn.style.color = 'var(--success-text)';
+                btn.style.borderColor = 'var(--success-border)';
+                btn.style.backgroundColor = 'var(--success-bg)';
+                showToast({ type: 'success', title: 'Token Copied', message: `Share URL copied: ${token}` });
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                    btn.style.backgroundColor = '';
+                }, 1600);
+            }).catch(() => {
+                prompt("Copy this share URL:", shareUrl);
+            });
+        }
+
+        // ==========================================
+        // Revocation Confirmation Modal Handlers
+        // ==========================================
+        let pendingRevokeToken = null;
+        let pendingRevokeRow = null;
+        let pendingRevokeFilename = '';
+
+        function promptRevokeGrant(token, filename, btn) {
+            pendingRevokeToken = token;
+            pendingRevokeRow = btn.closest('tr');
+            pendingRevokeFilename = filename;
+
+            const nameEl = document.getElementById('confirmRevokeFilename');
+            if (nameEl) nameEl.textContent = filename;
+
+            const modal = document.getElementById('confirmRevokeModal');
+            if (modal) {
+                modal.classList.remove('confirm-closing');
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeRevokeModal() {
+            const modal = document.getElementById('confirmRevokeModal');
+            if (modal) {
+                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    modal.style.display = 'none';
+                } else {
+                    modal.classList.add('confirm-closing');
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                        modal.classList.remove('confirm-closing');
+                    }, 140);
+                }
+            }
+            pendingRevokeToken = null;
+            pendingRevokeRow = null;
+            pendingRevokeFilename = '';
+        }
+
+        function executeRevokeGrant() {
+            if (!pendingRevokeRow) {
+                closeRevokeModal();
+                return;
+            }
+
+            const row = pendingRevokeRow;
+            const filename = pendingRevokeFilename;
+            const token = pendingRevokeToken;
+
+            // Mark row as revoked
+            row.setAttribute('data-status', 'expired');
+            const statusCell = row.querySelector('.table-status-cell');
+            if (statusCell) {
+                statusCell.innerHTML = `
+                    <span class="status-indicator-dot expired"></span>
+                    <span class="text-muted">Revoked</span>
+                `;
+            }
+
+            const actionCell = row.querySelector('.table-action-cell');
+            if (actionCell) {
+                actionCell.innerHTML = `
+                    <div class="table-action-group">
+                        <button type="button" class="table-action-btn" onclick="copyGrantToken('${token}', this)" title="Copy Share Link">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                            <span>Copy</span>
+                        </button>
+                        <button type="button" class="table-action-btn" disabled title="Grant revoked">
+                            <span>Revoked</span>
+                        </button>
+                    </div>
+                `;
+            }
+
+            closeRevokeModal();
+
+            showToast({
+                type: 'success',
+                title: 'Access Revoked',
+                message: `Cryptographic grant for "${filename}" was successfully revoked.`
+            });
+
+            // Re-filter table to reflect updated status
+            filterGrantsTable();
+        }
+
+        // ==========================================
+        // Enterprise Table Filtering & Toolbar
+        // ==========================================
+        window.currentGrantFilter = 'all';
+
+        function filterGrantsTable() {
+            const query = (document.getElementById('grantSearchInput')?.value || '').toLowerCase().trim();
+            const filter = window.currentGrantFilter || 'all';
+            const rows = document.querySelectorAll('#recentGrantsBody tr');
+            const wrapper = document.getElementById('grantsTableWrapper');
+            const emptyState = document.getElementById('grantsEmptyState');
+            const countBadge = document.getElementById('grantCountBadge');
+
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const filename = (row.getAttribute('data-filename') || '').toLowerCase();
+                const scope = (row.getAttribute('data-scope') || '').toLowerCase();
+                const text = row.textContent.toLowerCase();
+                const status = (row.getAttribute('data-status') || '').toLowerCase();
+
+                const matchesQuery = !query || filename.includes(query) || scope.includes(query) || text.includes(query);
+                const matchesFilter = (filter === 'all') || (status === filter);
+
+                if (matchesQuery && matchesFilter) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (countBadge) {
+                countBadge.textContent = `${visibleCount} grant${visibleCount === 1 ? '' : 's'}`;
+            }
+
+            const footerCount = document.getElementById('tableFooterCount');
+            if (footerCount) {
+                footerCount.textContent = `Showing ${visibleCount} of ${rows.length} grants`;
+            }
+
+            const totalRows = rows.length;
+            if (visibleCount === 0) {
+                if (wrapper) wrapper.style.display = 'none';
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                    const emptyTitle = emptyState.querySelector('.empty-title');
+                    const emptyDesc = emptyState.querySelector('.empty-subtitle');
+                    const emptyBtn = emptyState.querySelector('button');
+                    if (totalRows === 0) {
+                        if (emptyTitle) emptyTitle.textContent = 'No active share grants yet';
+                        if (emptyDesc) emptyDesc.textContent = 'Generate a secure link using the creation panel to grant zero-knowledge file access.';
+                        if (emptyBtn) {
+                            emptyBtn.innerHTML = '<span>Create First Share</span>';
+                            emptyBtn.onclick = focusShareForm;
+                        }
+                    } else {
+                        if (emptyTitle) emptyTitle.textContent = 'No matching share grants';
+                        if (emptyDesc) emptyDesc.textContent = 'No grants match the current search filter or status selection.';
+                        if (emptyBtn) {
+                            emptyBtn.innerHTML = '<span>Clear Filter</span>';
+                            emptyBtn.onclick = clearGrantFilter;
+                        }
+                    }
+                }
+            } else {
+                if (wrapper) wrapper.style.display = 'block';
+                if (emptyState) emptyState.style.display = 'none';
+            }
+        }
+
+        function setGrantFilter(filter, btn) {
+            window.currentGrantFilter = filter;
+            document.querySelectorAll('.table-filter-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            filterGrantsTable();
+        }
+
+        function clearGrantFilter() {
+            const searchInput = document.getElementById('grantSearchInput');
+            if (searchInput) searchInput.value = '';
+            const allBtn = document.querySelector('.table-filter-btn[data-filter="all"]');
+            setGrantFilter('all', allBtn);
+        }
+
+        function toggleQrCodeDrawer(btn) {
+            const drawer = document.getElementById('qrCodeDrawer');
+            if (!drawer) return;
+            const isClosed = (drawer.style.display === 'none' || !drawer.style.display);
+            if (isClosed) {
+                drawer.style.display = 'block';
+                if (btn) btn.classList.add('active');
+            } else {
+                drawer.style.display = 'none';
+                if (btn) btn.classList.remove('active');
+            }
         }
     </script>
 </body>

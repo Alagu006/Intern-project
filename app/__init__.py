@@ -1,4 +1,5 @@
-from flask import Flask, jsonify
+import os
+from flask import Flask, jsonify, redirect
 from flask_cors import CORS
 from flask_limiter.errors import RateLimitExceeded
 from werkzeug.exceptions import RequestEntityTooLarge
@@ -8,7 +9,9 @@ from app.extensions import db, migrate, limiter, cors
 
 
 def create_app(config=None):
-    app = Flask(__name__)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    static_dir = os.path.join(project_root, "static")
+    app = Flask(__name__, static_folder=static_dir, static_url_path="/static")
 
     if config == "testing":
         app.config.from_object(TestingConfig)
@@ -90,6 +93,18 @@ def create_app(config=None):
         })
         resp.status_code = 413
         return resp
+
+    # Root redirect to login page
+    @app.route("/", methods=["GET"])
+    @limiter.exempt
+    def index():
+        return redirect("/static/login.html")
+
+    # Favicon handler to avoid 404 console noise
+    @app.route("/favicon.ico", methods=["GET"])
+    @limiter.exempt
+    def favicon():
+        return ("", 204)
 
     # Health check endpoints for load balancers and orchestrators
     @app.route("/health", methods=["GET"])

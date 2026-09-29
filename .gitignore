@@ -40,3 +40,4 @@ htmlcov/
 # Tooling
 graphify-out/
 .agents/
+scratch/
